@@ -5,7 +5,7 @@
 
 **Bash Command Line Tool** • **Written by Claude Code for Claude Code** • Easy Installation • Interactive Menu • Zero Global Config Pollution
 
-<img width="488" height="317" alt="Screenshot 2025-08-10 at 8 57 54 PM" src="https://github.com/user-attachments/assets/b3a7e4a1-3f99-495e-ab38-204b60806b24" />
+<img width="488" height="317" alt="Screenshot 2025-08-10 at 8 57 54 PM" src="https://github.com/user-attachments/assets/b7dbb0c4-64f7-4528-81ea-a6723e981ad8" />
 
 *Asterisk bash command shown in Hyper terminal app*
 
