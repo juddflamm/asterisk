@@ -17,7 +17,7 @@
   Install our bash command named: `asterisk`
   This requires sudo permission only to place the asterisk bash command in your `/user/local/bin` folder.  That is all the install does.  Check out the `install.sh` file in this repo for install details.
    ```bash
-   sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/claude-code-accounts/main/install.sh)"
+   sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
    ```
 
 2. **Start using:**
