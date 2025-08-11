@@ -63,10 +63,10 @@ You can completely customize your account names to fit your workflow. Account na
 
 ### Account Storage Structure
 
-Your accounts are stored in `~/.claude_code_accounts/`:
+Your accounts are stored in `~/.asterisk/`:
 
 ```
-~/.claude_code_accounts/
+~/.asterisk/
 ├── settings.json
 ├── Work/
 └── Other/
@@ -77,7 +77,7 @@ Your accounts are stored in `~/.claude_code_accounts/`:
 The tool uses Claude Code CLI's built-in `CLAUDE_CONFIG_DIR` environment variable:
 
 - **Personal (default) Selection**: Explicitly unsets `CLAUDE_CONFIG_DIR` (clean slate)
-- **Account Selection**: Sets `CLAUDE_CONFIG_DIR=~/.claude_code_accounts/AccountName/`
+- **Account Selection**: Sets `CLAUDE_CONFIG_DIR=~/.asterisk/AccountName/`
 - **Per-Session**: Each terminal gets its own environment, no conflicts
 
 ## Dependencies
@@ -101,7 +101,7 @@ MIT License - feel free to use and modify as needed.
 
 Simply delete the `asterisk` bash command from your `/usr/local/bin/` folder.
 
-If you want to delete the Claude configurations for all of your anthropic accounts you setup using Claude Code Accounts, then you can delete the `~/.claude_code_accounts` folder.  It contains subfolders for each Anthropic Claude account profile you setup.  
+If you want to delete Asterisk's profiles for Claude Code, then you can delete the `~/.asterisk` folder.  It contains subfolders for each profile you setup.  
 
 Uninstalling will not affect your actual Anthropic accounts in any way.  It only affects the storage of Claude Code's settings stored in the asterisk profiles you created.
 
