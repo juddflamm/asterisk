@@ -1,4 +1,4 @@
-# Asterisk – Claude Code Accounts
+# Asterisk
 
 **Easily switch between multiple Anthropic Claude accounts with Claude Code CLI.**
 
