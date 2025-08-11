@@ -20,7 +20,7 @@ setup_accounts_dir() {
 {
   "accounts": [
     "Work",
-    "Personal"
+    "Other"
   ]
 }
 EOF
