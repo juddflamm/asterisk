@@ -9,6 +9,17 @@
 
 *Asterisk bash command shown in Hyper terminal app*
 
+## Why Use This Tool?
+
+If you work with multiple Anthropic accounts (personal, work, client projects), switching between them in Claude Code can be tedious. Instead of manually changing environment variables or logging in and out repeatedly, Asterisk gives you:
+
+- **One command, any account**: Type `asterisk`, pick your account, and you're coding
+- **Multiple sessions**: Run work Claude Code in one terminal, personal Claude Code in another  
+- **Zero setup friction**: Account directories are created automatically when first used
+- **Clean switching**: No environment pollution or configuration conflicts
+
+Perfect for developers, consultants, and teams who need to keep their Claude Code sessions organized across different accounts.
+
 ## 🚀 Quick Start
 
 ### Installation (macOS)
