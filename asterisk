@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ACCOUNTS_DIR="$HOME/.claude_code_accounts"
+ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
 # Colors for output
