@@ -20,7 +20,7 @@ Perfect for developers, teams, consultants, and anyone juggling personal and pro
 
 ##  One‑Line Install
 
-For macOS:
+For macOS & Linux:
 ```bash
 sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
 ```
