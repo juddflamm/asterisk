@@ -27,7 +27,6 @@ Perfect for developers, consultants, and teams who need to run Claude Code using
 
 1. **Install:**
   Use the below bash command to install `asterisk`...
-
   (This only requires sudo permission to place the asterisk bash command in your `/user/local/bin` folder)
    ```bash
    sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
