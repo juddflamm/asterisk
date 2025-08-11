@@ -66,7 +66,7 @@ To add or edit account profile names:
 - **Custom Account**: sets `CLAUDE_CONFIG_DIR=~/.asterisk/AccountName/` per session.
 - Every terminal gets its own isolated Claude profile environment.
 
----
+
 
 ##  Requirements
 
