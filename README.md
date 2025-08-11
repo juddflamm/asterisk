@@ -1,6 +1,6 @@
 # Asterisk
 
-**Easily switch between multiple Anthropic Claude accounts with Claude Code CLI.**
+**Easily switch between multiple Anthropic Claude accounts with [Claude Code CLI](https://www.anthropic.com/claude-code).**
 
 Asterisk is a free, open‑source command‑line tool for macOS and Linux that simplifies working with multiple Anthropic Claude accounts by providing an easy interactive menu and clean environment handling via separate profile directories.
 
