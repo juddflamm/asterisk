@@ -11,14 +11,15 @@
 
 ## Why Use This Tool?
 
-If you work with multiple Anthropic accounts (personal, work, client projects), switching between them in Claude Code can be tedious. Instead of manually changing environment variables or logging in and out repeatedly, Asterisk gives you:
+If you work with multiple Anthropic accounts (personal, work, client projects), switching between them in Claude Code can be tedious. Instead of logging in and out repeatedly, Asterisk launches Claude Code with your choice of Anthropic Account.
 
-- **One command, any account**: Type `asterisk`, pick your account, and you're coding
-- **Multiple sessions**: Run work Claude Code in one terminal, personal Claude Code in another  
-- **Zero setup friction**: Account directories are created automatically when first used
-- **Clean switching**: No environment pollution or configuration conflicts
+- **Select From Many Anthropic Accounts**: Type `asterisk`, pick your account, and you're coding
+- **Multiple Simultaneous Sessions**: Run Claude Code with your Work account in one terminal, and with your personal account in another
+- **Setup As Many Account Profiles As You Want**: Simply use the `Edit settings.json` menu option to customize Asterisk for your specific Anthropic accounts
+- **Automates Claude Code's CLAUDE_CONFIG_DIR Environment Variable**: Under the hood Asterisk launches Claude Code with specific account profile config directory, created automatically for you
+- **No Conflicts**: Asterisk won't conflict with running Claude Code normally either.  There's no environment pollution or configuration conflicts.
 
-Perfect for developers, consultants, and teams who need to keep their Claude Code sessions organized across different accounts.
+Perfect for developers, consultants, and teams who need to run Claude Code using multiple different Anthropic accounts.
 
 ## 🚀 Quick Start
 
