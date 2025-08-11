@@ -5,7 +5,7 @@
 This project creates a terminal command called `asterisk` that allows users to manage multiple Anthropic account profiles for Claude Code CLI. It enables running different Claude sessions simultaneously, each with different account configurations, without setting global environment variables.
 
 **Platform Support**: macOS and Linux
-**Repository**: https://github.com/juddflamm/claude-code-accounts
+**Repository**: https://github.com/juddflamm/asterisk
 
 ## Current Project Status (August 2025)
 
@@ -36,7 +36,7 @@ This project creates a terminal command called `asterisk` that allows users to m
 - Final choice: `asterisk` (unique, memorable, no conflicts)
 
 ### Hidden Directory Structure
-- **Location**: `~/.claude_code_accounts/`
+- **Location**: `~/.asterisk/`
 - **Reasoning**: Hidden folder in user home directory, follows Unix conventions
 - **Contents**:
   - `settings.json` - Account configuration
@@ -99,7 +99,7 @@ This project creates a terminal command called `asterisk` that allows users to m
    - Automatic setup on first run
 
 2. **Setup Function** (`setup_accounts_dir()`):
-   - Creates `~/.claude_code_accounts/` directory
+   - Creates `~/.asterisk/` directory
    - Creates default `settings.json` with example accounts
    - Does NOT pre-create account directories
 
@@ -145,13 +145,13 @@ This project creates a terminal command called `asterisk` that allows users to m
 ## File Structure
 
 ```
-claude-code-accounts/
-├── asterisk              # Main executable script
-├── settings.json         # Example settings file
-├── README.md            # User documentation
-└── CLAUDE.md            # This project documentation
+asterisk/
+├── asterisk               # Main executable script
+├── example_settings.json  # Example settings file
+├── README.md              # User documentation
+└── CLAUDE.md              # This project documentation
 
-~/.claude_code_accounts/  # Created on first run
+~/.asterisk/  # Created on first run
 ├── settings.json        # User's actual settings
 ├── Work/               # Created when "Work" first selected
 │   └── [Claude config files]
@@ -161,13 +161,13 @@ claude-code-accounts/
 
 ## Usage Workflow
 
-1. **Installation**: Use curl-based installer: `sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/claude-code-accounts/main/install.sh)"`
+1. **Installation**: Use curl-based installer: `sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"`
 2. **First run**: Creates hidden directory and settings file automatically
 3. **Daily use**: Run `asterisk`, select account profile, Claude launches with that config
 4. **Account Setup**: If account profile hasn't logged in, Claude Code will prompt for Anthropic login
 5. **Multiple sessions**: Each terminal can run different account profiles simultaneously
 6. **Settings management**: Select "Edit settings.json" to modify account profile list
-7. **Uninstall**: Simply delete `asterisk` from `/usr/local/bin/` and optionally delete `~/.claude_code_accounts/`
+7. **Uninstall**: Simply delete `asterisk` from `/usr/local/bin/` and optionally delete `~/.asterisk/`
 
 ## Key Features Implemented
 
@@ -213,7 +213,7 @@ claude-code-accounts/
 
 **Current Installation Method**: 
 ```bash
-sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/claude-code-accounts/main/install.sh)"
+sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
 ```
 
 **Usage**: Simply run `asterisk` command to see interactive menu.
