@@ -52,7 +52,7 @@ fi
 
 # Next steps
 echo
-echo "🍺 Next steps:"
+echo "Next steps:"
 if [ "$IN_PATH" = false ]; then
     echo "  1. Add this line to your shell profile (~/.bashrc, ~/.zshrc, etc.):"
     echo "       export PATH=\"$INSTALL_DIR:\$PATH\""
