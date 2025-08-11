@@ -43,7 +43,7 @@ asterisk
 
 ##  Configuration
 
-To add or edit account names:
+To add or edit account profile names:
 
 1. Run:
    ```bash
