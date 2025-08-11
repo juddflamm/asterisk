@@ -1,0 +1,155 @@
+#!/bin/bash
+
+ACCOUNTS_DIR="$HOME/.claude_code_accounts"
+SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Function to create initial setup
+setup_accounts_dir() {
+    echo "Setting up Claude Code accounts directory..."
+    mkdir -p "$ACCOUNTS_DIR"
+    
+    # Create default settings.json
+    cat > "$SETTINGS_FILE" << 'EOF'
+{
+  "accounts": [
+    "Work",
+    "Personal"
+  ]
+}
+EOF
+    
+    echo "Created ~/.claude_code_accounts directory and settings.json"
+    echo "Edit the settings.json file to configure your accounts."
+}
+
+# Function to parse JSON and get account names
+get_account_names() {
+    if command -v jq > /dev/null 2>&1; then
+        jq -r '.accounts[]' "$SETTINGS_FILE" 2>/dev/null
+    else
+        # Fallback without jq - basic parsing
+        grep -o '"[^"]*"' "$SETTINGS_FILE" | grep -v '"accounts"' | sed 's/"//g'
+    fi
+}
+
+
+# Function to show account selection menu
+show_menu() {
+    echo "Claude Code Account Selector"
+    echo "Written By Claude Code For Claude Code"
+    echo "======================================"
+    
+    local accounts=($(get_account_names))
+    local menu_options=()
+    local i=1
+    
+    # Add Personal (default) option first
+    echo "$i) Personal (default)"
+    menu_options+=("personal")
+    ((i++))
+    
+    # Add account options
+    for account in "${accounts[@]}"; do
+        if [ -n "$account" ]; then
+            echo "$i) $account"
+            menu_options+=("$account")
+            ((i++))
+        fi
+    done
+    
+    # Add edit settings option
+    echo "e) Edit settings.json"
+    
+    echo ""
+    echo "Press a key (1-$((i-1)), e, first letter, or Enter for Default):"
+    
+    # Read single character without requiring enter
+    read -n1 -s choice
+    echo # Add newline after input
+    
+    # Handle edit option (E or e)
+    if [[ "$choice" = "E" || "$choice" = "e" ]]; then
+        echo "Opening settings.json in new VSCode window..."
+        code -n "$SETTINGS_FILE"
+        exit 0
+    fi
+    
+    # Handle enter key (same as option 1 - Personal)
+    if [[ "$choice" = "" ]]; then
+        choice="1"
+    fi
+    
+    # Handle first letter matching
+    local selected=""
+    local choice_upper=$(echo "$choice" | tr '[:lower:]' '[:upper:]')
+    local choice_lower=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
+    
+    # Check Personal first (P or p)
+    if [[ "$choice_upper" = "P" ]]; then
+        selected="personal"
+    else
+        # Check accounts from settings for first letter match
+        for account in "${menu_options[@]}"; do
+            if [ "$account" != "personal" ]; then
+                local first_letter=$(echo "$account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+                if [[ "$choice_upper" = "$first_letter" ]]; then
+                    selected="$account"
+                    break
+                fi
+            fi
+        done
+    fi
+    
+    # If no letter match found, try numeric choice
+    if [ -z "$selected" ] && [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $((i-1)) ]; then
+        selected="${menu_options[$((choice-1))]}"
+    fi
+    
+    # Execute the selection
+    if [ -n "$selected" ]; then
+        if [ "$selected" = "personal" ]; then
+            echo "Launching Claude Code CLI with Personal configuration..."
+            exec env -u CLAUDE_CONFIG_DIR claude "$@"
+        else
+            local config_dir="$ACCOUNTS_DIR/$selected"
+            if [ ! -d "$config_dir" ]; then
+                echo "Creating configuration directory: $config_dir"
+                mkdir -p "$config_dir"
+            fi
+            echo "Launching Claude Code CLI with $selected configuration..."
+            exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
+        fi
+    else
+        echo "Invalid selection. Please try again."
+        exit 1
+    fi
+}
+
+# Main execution
+main() {
+    # Check if accounts directory exists
+    if [ ! -d "$ACCOUNTS_DIR" ]; then
+        setup_accounts_dir
+        echo ""
+    fi
+    
+    # Check if settings file exists
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo "Error: settings.json not found. Running setup..."
+        setup_accounts_dir
+        echo ""
+    fi
+    
+    # Show menu
+    show_menu
+}
+
+# Run main function
+main "$@"
