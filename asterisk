@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 # Function to create initial setup
 setup_accounts_dir() {
-    echo "Setting up Claude Code accounts directory..."
+    echo "Setting up Asterisk's config directory, $ACCOUNTS_DIR..."
     mkdir -p "$ACCOUNTS_DIR"
     
     # Create default settings.json
@@ -25,8 +25,8 @@ setup_accounts_dir() {
 }
 EOF
     
-    echo "Created ~/.claude_code_accounts directory and settings.json"
-    echo "Edit the settings.json file to configure your accounts."
+    echo "Created $ACCOUNTS_DIR directory and settings.json"
+    echo "Edit the settings.json file to configure account profiles for your Claude Code accounts."
 }
 
 # Function to parse JSON and get account names
@@ -42,9 +42,10 @@ get_account_names() {
 
 # Function to show account selection menu
 show_menu() {
-    echo "Claude Code Account Selector"
+    echo "* Asterisk"
     echo "Written By Claude Code For Claude Code"
-    echo "======================================"
+    echo "Select a profile to launch the Claude Code CLI"
+    echo "=============================================="
     
     local accounts=($(get_account_names))
     local menu_options=()
@@ -115,15 +116,15 @@ show_menu() {
     # Execute the selection
     if [ -n "$selected" ]; then
         if [ "$selected" = "personal" ]; then
-            echo "Launching Claude Code CLI with Personal configuration..."
+            echo "Launching Claude Code CLI with Personal profile..."
             exec env -u CLAUDE_CONFIG_DIR claude "$@"
         else
             local config_dir="$ACCOUNTS_DIR/$selected"
             if [ ! -d "$config_dir" ]; then
-                echo "Creating configuration directory: $config_dir"
+                echo "Creating profile directory: $config_dir"
                 mkdir -p "$config_dir"
             fi
-            echo "Launching Claude Code CLI with $selected configuration..."
+            echo "Launching Claude Code CLI with $selected profile..."
             exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
         fi
     else
