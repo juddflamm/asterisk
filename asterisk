@@ -8,7 +8,80 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
+ORANGE='\033[38;2;230;125;34m'  # #E67D22
+WHITE='\033[1;37m'  # Bright white
 NC='\033[0m' # No Color
+
+# Function to get terminal width
+get_terminal_width() {
+    tput cols
+}
+
+# Function to repeat a character N times
+repeat_char() {
+    local char="$1"
+    local count="$2"
+    printf '%*s' "$count" | tr ' ' "$char"
+}
+
+# Function to draw top border
+draw_top_border() {
+    local width=$(get_terminal_width)
+    local title="$1"
+    # Strip ANSI codes to get actual visible length
+    local visible_title=$(strip_ansi "$title")
+    local title_length=${#visible_title}
+    # Width = "╭─── " (5) + title + " " (1) + dashes + "╮" (1)
+    local remaining=$((width - title_length - 7))  # 7 = 5 + 1 + 1
+    printf "╭─── "
+    printf "%b" "$title"
+    printf " "
+    repeat_char "─" "$remaining"
+    printf "╮\n"
+}
+
+# Function to draw bottom border
+draw_bottom_border() {
+    local width=$(get_terminal_width)
+    local subtitle="$1"
+    local subtitle_length=${#subtitle}
+    # Width = "╰─── " (5) + subtitle + " " (1) + dashes + "╯" (1)
+    local remaining=$((width - subtitle_length - 7))  # 7 = 5 + 1 + 1
+    printf "╰─── "
+    printf "%s" "$subtitle"
+    printf " "
+    repeat_char "─" "$remaining"
+    printf "╯\n"
+}
+
+# Function to strip ANSI codes for length calculation
+strip_ansi() {
+    local text="$1"
+    # Remove all ANSI escape sequences using sed
+    echo "$text" | sed -E 's/\\033\[[0-9;]+m//g'
+}
+
+# Function to draw a padded line with borders
+draw_line() {
+    local content="$1"
+    local width=$(get_terminal_width)
+    # Strip ANSI codes to get actual visible length
+    local visible_content=$(strip_ansi "$content")
+    local content_length=${#visible_content}
+    # Width breakdown: │ (1) + "  " (2) + content + padding + "  " (2) + │ (1) = width
+    # So: padding = width - 1 - 2 - content_length - 2 - 1 = width - content_length - 6
+    local padding=$((width - content_length - 6))
+    printf "│  %b%-*s  │\n" "$content" "$padding" ""
+}
+
+# Function to draw empty line with borders
+draw_empty_line() {
+    local width=$(get_terminal_width)
+    local remaining=$((width - 2))  # 2 = "│" + "│"
+    printf "│"
+    printf '%*s' "$remaining" ""
+    printf "│\n"
+}
 
 # Function to create initial setup
 setup_accounts_dir() {
@@ -41,21 +114,23 @@ get_account_names() {
 
 # Function to show MCP tools installation menu
 show_mcp_menu() {
-    echo ""
-    echo "* MCP Tools Installation"
-    echo "=============================================="
-    echo "Select an MCP tool to install:"
-    echo ""
-    echo "1) Playwright MCP Tool"
-    echo "b) Back to main menu"
-    echo ""
-    echo "Press a key (1, b):"
-
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    draw_empty_line
+    draw_line "${WHITE}Select an MCP tool to install:${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+    draw_line "1) Playwright MCP Tool"
+    draw_empty_line
+    draw_line "b) Back to main menu"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1, b, ESC): "
     read -n1 -s tool_choice
     echo # Add newline after input
 
-    # Handle back option
-    if [[ "$tool_choice" = "B" || "$tool_choice" = "b" ]]; then
+    # Handle ESC or back option
+    if [[ "$tool_choice" = $'\x1b' ]] || [[ "$tool_choice" = "B" || "$tool_choice" = "b" ]]; then
+        clear
         show_menu "$@"
         return
     fi
@@ -70,11 +145,13 @@ show_mcp_menu() {
     else
         echo "Invalid selection. Please try again."
         sleep 2
+        clear
         show_mcp_menu "$@"
         return
     fi
 
     # Now show profile selection
+    clear
     show_profile_selection_for_mcp "$mcp_tool" "$mcp_command" "$@"
 }
 
@@ -84,37 +161,40 @@ show_profile_selection_for_mcp() {
     local mcp_command="$2"
     shift 2
 
-    echo ""
-    echo "* Select Profile for $mcp_tool"
-    echo "=============================================="
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    draw_empty_line
+    draw_line "${WHITE}Select Profile for $mcp_tool${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
 
     local accounts=($(get_account_names))
     local menu_options=()
     local i=1
 
     # Add Personal (default) option first
-    echo "$i) Personal (default)"
+    draw_line "$i) Personal (default)"
     menu_options+=("personal")
     ((i++))
 
     # Add account options
     for account in "${accounts[@]}"; do
         if [ -n "$account" ]; then
-            echo "$i) $account"
+            draw_line "$i) $account"
             menu_options+=("$account")
             ((i++))
         fi
     done
-
-    echo "b) Back to MCP tools menu"
-    echo ""
-    echo "Press a key (1-$((i-1)), b, first letter):"
-
+    draw_empty_line
+    draw_line "b) Back to MCP tools menu"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-$((i-1)), b, first letter, ESC): "
     read -n1 -s choice
     echo # Add newline after input
 
-    # Handle back option
-    if [[ "$choice" = "B" || "$choice" = "b" ]]; then
+    # Handle ESC or back option
+    if [[ "$choice" = $'\x1b' ]] || [[ "$choice" = "B" || "$choice" = "b" ]]; then
+        clear
         show_mcp_menu "$@"
         return
     fi
@@ -146,6 +226,7 @@ show_profile_selection_for_mcp() {
 
     # Execute the MCP installation with selected profile
     if [ -n "$selected" ]; then
+        clear
         if [ "$selected" = "personal" ]; then
             echo "Installing $mcp_tool for Personal (default) profile..."
             echo "Running: claude mcp add $mcp_command"
@@ -169,6 +250,7 @@ show_profile_selection_for_mcp() {
     else
         echo "Invalid selection. Please try again."
         sleep 2
+        clear
         show_profile_selection_for_mcp "$mcp_tool" "$mcp_command" "$@"
     fi
 }
@@ -176,42 +258,49 @@ show_profile_selection_for_mcp() {
 
 # Function to show account selection menu
 show_menu() {
-    echo "* Asterisk"
-    echo "Written By Claude Code For Claude Code"
-    echo "Select a profile to launch the Claude Code CLI"
-    echo "=============================================="
-    
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    draw_empty_line
+    draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+
     local accounts=($(get_account_names))
     local menu_options=()
     local i=1
-    
+
     # Add Personal (default) option first
-    echo "$i) Personal (default)"
+    draw_line "$i) Personal (default)"
     menu_options+=("personal")
     ((i++))
-    
+
     # Add account options
     for account in "${accounts[@]}"; do
         if [ -n "$account" ]; then
-            echo "$i) $account"
+            draw_line "$i) $account"
             menu_options+=("$account")
             ((i++))
         fi
     done
-    
+    draw_empty_line
     # Add edit settings option
-    echo "e) Edit settings.json"
+    draw_line "e) Edit settings.json"
 
     # Add MCP tools option
-    echo "m) Install MCP Tool"
+    draw_line "m) Install MCP Tool"
 
-    echo ""
-    echo "Press a key (1-$((i-1)), e, m, first letter, or Enter for Default):"
-    
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-$((i-1)), e, m, first letter, Enter for Default, ESC to exit): "
     # Read single character without requiring enter
     read -n1 -s choice
     echo # Add newline after input
-    
+
+    # Handle ESC (exit)
+    if [[ "$choice" = $'\x1b' ]]; then
+        echo "Exiting..."
+        exit 0
+    fi
+
     # Handle edit option (E or e)
     if [[ "$choice" = "E" || "$choice" = "e" ]]; then
         echo "Opening settings.json in new VSCode window..."
@@ -221,6 +310,7 @@ show_menu() {
 
     # Handle MCP tools option (M or m)
     if [[ "$choice" = "M" || "$choice" = "m" ]]; then
+        clear
         show_mcp_menu "$@"
         return
     fi
@@ -258,8 +348,11 @@ show_menu() {
     
     # Execute the selection
     if [ -n "$selected" ]; then
+        clear
         if [ "$selected" = "personal" ]; then
             echo "Launching Claude Code CLI with Personal profile..."
+            echo "Command: env -u CLAUDE_CONFIG_DIR claude $@"
+            echo ""
             exec env -u CLAUDE_CONFIG_DIR claude "$@"
         else
             local config_dir="$ACCOUNTS_DIR/$selected"
@@ -268,6 +361,8 @@ show_menu() {
                 mkdir -p "$config_dir"
             fi
             echo "Launching Claude Code CLI with $selected profile..."
+            echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
+            echo ""
             exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
         fi
     else
@@ -283,14 +378,16 @@ main() {
         setup_accounts_dir
         echo ""
     fi
-    
+
     # Check if settings file exists
     if [ ! -f "$SETTINGS_FILE" ]; then
         echo "Error: settings.json not found. Running setup..."
         setup_accounts_dir
         echo ""
     fi
-    
+
+    # Clear screen before showing first menu
+    clear
     # Show menu
     show_menu "$@"
 }
