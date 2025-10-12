@@ -7,12 +7,15 @@ This project creates a terminal command called `asterisk` that allows users to m
 **Platform Support**: macOS and Linux
 **Repository**: https://github.com/juddflamm/asterisk
 
-## Current Project Status (August 2025)
+## Current Project Status (October 2025)
 
+**Version**: v1.3.1
 **Installation**: One-command curl installer from GitHub
-**Interface**: Clean terminal output (no colors) with single-key input
+**Interface**: Boxed UI with full-width borders, colored elements, single-key input
 **Terminology**: Uses "account profiles" to clarify these are Claude Code configuration folders
-**Menu**: Shows "Personal (default)" as first option, followed by configured profiles
+**Menu**: Shows configurable default account first, followed by additional profiles
+**Updates**: Automatic version checking with one-click updates
+**MCP Support**: Built-in MCP tool installation for specific profiles
 **Distribution**: Published as open-source project with comprehensive documentation
 
 ## Project Purpose
@@ -43,7 +46,18 @@ This project creates a terminal command called `asterisk` that allows users to m
   - Individual account directories (created on-demand)
 
 ### Settings File Format
-**Final Decision**: Simple array structure
+**Current Format** (v1.3.0+):
+```json
+{
+  "defaultAccountName": "Personal",
+  "additionalAccounts": [
+    "Work",
+    "Client"
+  ]
+}
+```
+
+**Legacy Format** (v1.2.x and earlier):
 ```json
 {
   "accounts": [
@@ -53,19 +67,17 @@ This project creates a terminal command called `asterisk` that allows users to m
 }
 ```
 
-**Rejected Format**: Object with metadata
-```json
-{
-  "accounts": {
-    "work": {
-      "name": "Work Account",
-      "description": "Corporate Anthropic account"
-    }
-  }
-}
-```
+**Migration**: Asterisk automatically migrates old format to new on startup.
 
-**Reasoning**: Simpler is better. Account name serves as both display name and directory name.
+**Key Changes**:
+- `defaultAccountName`: Configurable name for the default profile (launches without custom config)
+- `additionalAccounts`: Renamed from `accounts` for clarity
+- Backward compatible: old settings files are automatically upgraded
+
+**Reasoning**:
+- Allows users to customize the default account name instead of hardcoding "Personal"
+- Clearer separation between default and additional profiles
+- Account name serves as both display name and directory name
 
 ### Directory Creation Strategy
 **Decision**: Lazy creation
@@ -195,16 +207,20 @@ asterisk/
 
 1. **Initial Concept**: Simple account switching for Claude CLI
 2. **Architecture Design**: Hidden folder approach with settings file
-3. **Settings Format**: Evolved from complex objects to simple array
+3. **Settings Format**: Evolved from complex objects to simple array, then to configurable default + additional accounts
 4. **Directory Strategy**: Changed from pre-creation to lazy creation
 5. **Command Naming**: Multiple iterations to find conflict-free name (`assterix` → `asterisk`)
 6. **Environment Variables**: Added explicit cleanup for default option
 7. **Parameter Handling**: Added full pass-through support
-8. **User Interface**: Removed colors, simplified to normal terminal output
+8. **User Interface**: Evolved from simple text to boxed UI with colors and borders
 9. **Installation Method**: Added curl-based installer from GitHub
 10. **Platform Support**: Expanded from macOS-only to macOS and Linux
 11. **Terminology Clarification**: Adopted "account profiles" to clarify these are Claude Code config folders
 12. **Documentation**: Added comprehensive uninstall instructions
+13. **Update System**: Added automatic version checking with one-click updates
+14. **MCP Integration**: Added MCP tool installation with profile selection
+15. **Settings Migration**: Added automatic migration from old to new settings format
+16. **Version Comparison**: Implemented proper semantic versioning comparison
 
 ## Versioning & Updates
 
@@ -249,6 +265,9 @@ The script implements automatic update checking with these characteristics:
 - Help text: Dynamically includes 'u' option when update available
 
 ### Version History
+- **v1.3.1**: Added automatic settings migration from old to new format
+- **v1.3.0**: Configurable default account name, proper semantic version comparison
+- **v1.2.1**: Fixed version comparison for patch releases
 - **v1.2.0**: Added automatic update checking, boxed UI, ESC key support, MCP tool installation, version display
 - **v1.1.0**: Added colored UI elements, full-width borders, improved menu system
 - **v1.0.0**: Initial release with basic account switching functionality

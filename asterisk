@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.3.0"
+VERSION="1.3.1"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -102,6 +102,29 @@ EOF
     
     echo "Created $ACCOUNTS_DIR directory and settings.json"
     echo "Edit the settings.json file to configure account profiles for your Claude Code accounts."
+}
+
+# Function to migrate old settings format to new format
+migrate_settings_if_needed() {
+    # Check if migration is needed (old format has "accounts" instead of "additionalAccounts")
+    if grep -q '"accounts"' "$SETTINGS_FILE" && ! grep -q '"additionalAccounts"' "$SETTINGS_FILE"; then
+        echo "Migrating settings.json to new format..."
+
+        if command -v jq > /dev/null 2>&1; then
+            # Use jq for migration
+            local temp_file="${SETTINGS_FILE}.tmp"
+            jq '{defaultAccountName: "Personal", additionalAccounts: .accounts}' "$SETTINGS_FILE" > "$temp_file"
+            mv "$temp_file" "$SETTINGS_FILE"
+        else
+            # Fallback: manual migration using sed
+            local temp_file="${SETTINGS_FILE}.tmp"
+            sed 's/"accounts"/"additionalAccounts"/' "$SETTINGS_FILE" | \
+            sed 's/{/{\'$'\n''  "defaultAccountName": "Personal",/' > "$temp_file"
+            mv "$temp_file" "$SETTINGS_FILE"
+        fi
+
+        echo "Settings migrated successfully."
+    fi
 }
 
 # Function to get default account name
@@ -472,6 +495,9 @@ main() {
         setup_accounts_dir
         echo ""
     fi
+
+    # Migrate settings if needed (old format to new format)
+    migrate_settings_if_needed
 
     # Clear screen before showing first menu
     clear

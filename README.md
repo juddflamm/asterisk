@@ -49,22 +49,30 @@ To add or edit account profile names:
    ```bash
    asterisk
    ```
-2. Select **Edit settings.json**
-3. Update the `"accounts"` array, e.g.:
+2. Select **Edit settings.json** (press `e`)
+3. Update the settings:
    ```json
    {
-     "accounts": ["Work", "Client-Acme", "Personal", "Side-Projects"]
+     "defaultAccountName": "Personal",
+     "additionalAccounts": ["Work", "Client-Acme", "Side-Projects"]
    }
    ```
+   - `defaultAccountName`: The name for your default profile (launches without custom config)
+   - `additionalAccounts`: List of additional account profiles
+
 4. Save — Asterisk will create profile folders automatically upon next use.
+
+**Note**: Asterisk will automatically migrate old settings files to the new format.
 
 
 
 ##  How It Works
 
-- **Default (Personal)**: uses standard `claude` behavior with no special config.
-- **Custom Account**: sets `CLAUDE_CONFIG_DIR=~/.asterisk/AccountName/` per session.
-- Every terminal gets its own isolated Claude profile environment.
+- **Default Account**: uses standard `claude` behavior with no special config (name is customizable in settings)
+- **Additional Accounts**: sets `CLAUDE_CONFIG_DIR=~/.asterisk/AccountName/` per session
+- Every terminal gets its own isolated Claude profile environment
+- **Automatic Updates**: Checks GitHub for new versions on startup and offers one-click updates
+- **MCP Tool Installation**: Install Model Context Protocol tools for specific profiles via the menu
 
 
 
@@ -77,8 +85,11 @@ To add or edit account profile names:
 
 ##  Additional Features
 
-- **CLI parameter pass-through** — arguments you pass to `asterisk` are forwarded to the `claude` command.
-- **Safe to uninstall**:  
+- **CLI parameter pass-through** — arguments you pass to `asterisk` are forwarded to the `claude` command
+- **Keyboard shortcuts** — single-key selection, first-letter matching, ESC to navigate back
+- **Version display** — shows current version in menu (e.g., "* Asterisk v1.3.1")
+- **Boxed UI** — clean, full-width bordered menus with color-coded elements
+- **Safe to uninstall**:
   Remove `/usr/local/bin/asterisk` and delete `~/.asterisk/`. Your Claude accounts remain unaffected.
 
 
