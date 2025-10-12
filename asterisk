@@ -92,7 +92,8 @@ setup_accounts_dir() {
     # Create default settings.json
     cat > "$SETTINGS_FILE" << 'EOF'
 {
-  "accounts": [
+  "defaultAccountName": "Personal",
+  "additionalAccounts": [
     "Work",
     "Other"
   ]
@@ -103,13 +104,28 @@ EOF
     echo "Edit the settings.json file to configure account profiles for your Claude Code accounts."
 }
 
-# Function to parse JSON and get account names
-get_account_names() {
+# Function to get default account name
+get_default_account_name() {
     if command -v jq > /dev/null 2>&1; then
-        jq -r '.accounts[]' "$SETTINGS_FILE" 2>/dev/null
+        jq -r '.defaultAccountName // "Personal"' "$SETTINGS_FILE" 2>/dev/null
     else
         # Fallback without jq - basic parsing
-        grep -o '"[^"]*"' "$SETTINGS_FILE" | grep -v '"accounts"' | sed 's/"//g'
+        local default=$(grep -o '"defaultAccountName"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | sed 's/.*"defaultAccountName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+        if [ -z "$default" ]; then
+            echo "Personal"
+        else
+            echo "$default"
+        fi
+    fi
+}
+
+# Function to parse JSON and get additional account names
+get_account_names() {
+    if command -v jq > /dev/null 2>&1; then
+        jq -r '.additionalAccounts[]? // .accounts[]?' "$SETTINGS_FILE" 2>/dev/null
+    else
+        # Fallback without jq - basic parsing (supports both new and old format)
+        grep -o '"[^"]*"' "$SETTINGS_FILE" | grep -v -e '"defaultAccountName"' -e '"additionalAccounts"' -e '"accounts"' | sed 's/"//g'
     fi
 }
 
@@ -203,13 +219,14 @@ show_profile_selection_for_mcp() {
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
 
+    local default_account=$(get_default_account_name)
     local accounts=($(get_account_names))
     local menu_options=()
     local i=1
 
-    # Add Personal (default) option first
-    draw_line "$i) Personal (default)"
-    menu_options+=("personal")
+    # Add default account option first
+    draw_line "$i) $default_account (default)"
+    menu_options+=("default")
     ((i++))
 
     # Add account options
@@ -238,14 +255,15 @@ show_profile_selection_for_mcp() {
     # Handle first letter matching
     local selected=""
     local choice_upper=$(echo "$choice" | tr '[:lower:]' '[:upper:]')
+    local default_first_letter=$(echo "$default_account" | cut -c1 | tr '[:lower:]' '[:upper:]')
 
-    # Check Personal first (P or p)
-    if [[ "$choice_upper" = "P" ]]; then
-        selected="personal"
+    # Check default account first letter
+    if [[ "$choice_upper" = "$default_first_letter" ]]; then
+        selected="default"
     else
         # Check accounts from settings for first letter match
         for account in "${menu_options[@]}"; do
-            if [ "$account" != "personal" ]; then
+            if [ "$account" != "default" ]; then
                 local first_letter=$(echo "$account" | cut -c1 | tr '[:lower:]' '[:upper:]')
                 if [[ "$choice_upper" = "$first_letter" ]]; then
                     selected="$account"
@@ -263,8 +281,8 @@ show_profile_selection_for_mcp() {
     # Execute the MCP installation with selected profile
     if [ -n "$selected" ]; then
         clear
-        if [ "$selected" = "personal" ]; then
-            echo "Installing $mcp_tool for Personal (default) profile..."
+        if [ "$selected" = "default" ]; then
+            echo "Installing $mcp_tool for $default_account (default) profile..."
             echo "Running: claude mcp add $mcp_command"
             echo ""
             env -u CLAUDE_CONFIG_DIR claude mcp add $mcp_command
@@ -310,13 +328,14 @@ show_menu() {
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
 
+    local default_account=$(get_default_account_name)
     local accounts=($(get_account_names))
     local menu_options=()
     local i=1
 
-    # Add Personal (default) option first
-    draw_line "$i) Personal (default)"
-    menu_options+=("personal")
+    # Add default account option first
+    draw_line "$i) $default_account (default)"
+    menu_options+=("default")
     ((i++))
 
     # Add account options
@@ -391,14 +410,15 @@ show_menu() {
     local selected=""
     local choice_upper=$(echo "$choice" | tr '[:lower:]' '[:upper:]')
     local choice_lower=$(echo "$choice" | tr '[:upper:]' '[:lower:]')
-    
-    # Check Personal first (P or p)
-    if [[ "$choice_upper" = "P" ]]; then
-        selected="personal"
+    local default_first_letter=$(echo "$default_account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+
+    # Check default account first letter
+    if [[ "$choice_upper" = "$default_first_letter" ]]; then
+        selected="default"
     else
         # Check accounts from settings for first letter match
         for account in "${menu_options[@]}"; do
-            if [ "$account" != "personal" ]; then
+            if [ "$account" != "default" ]; then
                 local first_letter=$(echo "$account" | cut -c1 | tr '[:lower:]' '[:upper:]')
                 if [[ "$choice_upper" = "$first_letter" ]]; then
                     selected="$account"
@@ -416,8 +436,8 @@ show_menu() {
     # Execute the selection
     if [ -n "$selected" ]; then
         clear
-        if [ "$selected" = "personal" ]; then
-            echo "Launching Claude Code CLI with Personal profile..."
+        if [ "$selected" = "default" ]; then
+            echo "Launching Claude Code CLI with $default_account profile..."
             echo "Command: env -u CLAUDE_CONFIG_DIR claude $@"
             echo ""
             exec env -u CLAUDE_CONFIG_DIR claude "$@"
