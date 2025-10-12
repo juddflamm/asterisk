@@ -1,5 +1,6 @@
 #!/bin/bash
 
+VERSION="1.1.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -112,9 +113,20 @@ get_account_names() {
     fi
 }
 
+# Function to check for updates
+check_for_updates() {
+    local remote_version=$(curl -fsSL "https://raw.githubusercontent.com/juddflamm/asterisk/main/version.txt" 2>/dev/null | tr -d '[:space:]')
+    if [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
+        # Compare versions (simple string comparison, works for semantic versioning)
+        if [ "$remote_version" \> "$VERSION" ]; then
+            echo "$remote_version"
+        fi
+    fi
+}
+
 # Function to show MCP tools installation menu
 show_mcp_menu() {
-    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
     draw_line "${WHITE}Select an MCP tool to install:${NC}"
     draw_line "${WHITE}==============================================${NC}"
@@ -161,7 +173,7 @@ show_profile_selection_for_mcp() {
     local mcp_command="$2"
     shift 2
 
-    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
     draw_line "${WHITE}Select Profile for $mcp_tool${NC}"
     draw_line "${WHITE}==============================================${NC}"
@@ -258,8 +270,26 @@ show_profile_selection_for_mcp() {
 
 # Function to show account selection menu
 show_menu() {
-    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC}"
+    # Check if we should run update check (only on first load, stored in global var)
+    if [ "$FIRST_MENU_LOAD" = "true" ]; then
+        FIRST_MENU_LOAD="false"
+        local new_version=$(check_for_updates)
+        if [ -n "$new_version" ]; then
+            UPDATE_AVAILABLE="true"
+            NEW_VERSION="$new_version"
+        fi
+    fi
+
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
+
+    # Display update notification if available
+    if [ "$UPDATE_AVAILABLE" = "true" ]; then
+        draw_line "${ORANGE}Update available: v${NEW_VERSION}${NC}"
+        draw_line "Run: curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh | sudo bash"
+        draw_empty_line
+    fi
+
     draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
@@ -388,6 +418,8 @@ main() {
 
     # Clear screen before showing first menu
     clear
+    # Set flag for first menu load to check for updates
+    FIRST_MENU_LOAD="true"
     # Show menu
     show_menu "$@"
 }
