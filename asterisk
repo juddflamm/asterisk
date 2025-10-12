@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.2.0"
+VERSION="1.2.1"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -113,12 +113,36 @@ get_account_names() {
     fi
 }
 
+# Function to compare semantic versions (returns 0 if v1 > v2, 1 otherwise)
+version_gt() {
+    local v1="$1"
+    local v2="$2"
+
+    # Split versions into arrays
+    IFS='.' read -ra V1 <<< "$v1"
+    IFS='.' read -ra V2 <<< "$v2"
+
+    # Compare major, minor, patch
+    for i in 0 1 2; do
+        local num1=${V1[$i]:-0}
+        local num2=${V2[$i]:-0}
+
+        if [ "$num1" -gt "$num2" ]; then
+            return 0  # v1 > v2
+        elif [ "$num1" -lt "$num2" ]; then
+            return 1  # v1 < v2
+        fi
+    done
+
+    return 1  # versions are equal
+}
+
 # Function to check for updates
 check_for_updates() {
     local remote_version=$(curl -fsSL "https://raw.githubusercontent.com/juddflamm/asterisk/main/version.txt" 2>/dev/null | tr -d '[:space:]')
     if [ -n "$remote_version" ] && [ "$remote_version" != "$VERSION" ]; then
-        # Compare versions (simple string comparison, works for semantic versioning)
-        if [ "$remote_version" \> "$VERSION" ]; then
+        # Compare versions using proper semantic versioning
+        if version_gt "$remote_version" "$VERSION"; then
             echo "$remote_version"
         fi
     fi
