@@ -171,19 +171,24 @@ asterisk/
 
 ## Key Features Implemented
 
-✅ **Interactive account selection menu with single-key input**  
-✅ **Lazy directory creation** (only when needed)  
-✅ **Per-session environment variables** (no globals)  
-✅ **Parameter pass-through** to Claude CLI  
-✅ **Personal (default) option** with explicit env var cleanup  
-✅ **Settings editing** via VS Code integration  
-✅ **Automatic setup** on first run  
-✅ **Clean terminal interface** (no color formatting)  
-✅ **JSON parsing** with fallback (works with or without `jq`)  
-✅ **First letter account matching** for quick selection  
-✅ **Input validation** and error handling  
-✅ **Cross-platform support** (macOS and Linux)  
-✅ **One-command installation** via curl installer  
+✅ **Interactive account selection menu with single-key input**
+✅ **Lazy directory creation** (only when needed)
+✅ **Per-session environment variables** (no globals)
+✅ **Parameter pass-through** to Claude CLI
+✅ **Personal (default) option** with explicit env var cleanup
+✅ **Settings editing** via VS Code integration
+✅ **Automatic setup** on first run
+✅ **Boxed UI with full-width borders** using Unicode box drawing characters
+✅ **Colored title** (orange asterisk, white "Asterisk" text)
+✅ **JSON parsing** with fallback (works with or without `jq`)
+✅ **First letter account matching** for quick selection
+✅ **ESC key support** (back navigation and exit)
+✅ **Input validation** and error handling
+✅ **Cross-platform support** (macOS and Linux)
+✅ **One-command installation** via curl installer
+✅ **Automatic update checking** with in-menu update option
+✅ **Version display** in menu title
+✅ **MCP tool installation** support with profile selection
 ✅ **Comprehensive uninstall process**  
 
 ## Development History
@@ -201,6 +206,53 @@ asterisk/
 11. **Terminology Clarification**: Adopted "account profiles" to clarify these are Claude Code config folders
 12. **Documentation**: Added comprehensive uninstall instructions
 
+## Versioning & Updates
+
+### Version Management
+**Current Version**: v1.2.0
+
+The version number is stored in **two locations** and must be updated in both places:
+
+1. **`asterisk` script**: Line 3, `VERSION="1.2.0"`
+2. **`version.txt` file**: Contains only the version number (e.g., `1.2.0`)
+
+**IMPORTANT**: When bumping the version, update BOTH files to keep them in sync.
+
+### Automatic Update Checking
+
+The script implements automatic update checking with these characteristics:
+
+**How It Works**:
+1. On first menu load, script checks GitHub for latest `version.txt`
+2. Compares remote version with local `VERSION` variable
+3. If newer version available, stores in global variables
+4. Displays orange menu item: "u) Update to latest version: vX.X.X"
+5. User can press 'u' to automatically run the installer and update
+
+**Performance**:
+- Update check only runs ONCE on initial startup
+- Menu renders immediately (fast/snappy UI)
+- Check happens after menu is displayed
+- Subsequent menu visits use cached result (no re-checking)
+
+**Update Process**:
+1. User presses 'u' when update available
+2. Screen clears, shows "Updating Asterisk to vX.X.X..."
+3. Runs: `curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh | sudo bash`
+4. Script exits after update completes
+
+**Implementation Details**:
+- Function: `check_for_updates()`
+- Global flags: `FIRST_MENU_LOAD`, `UPDATE_AVAILABLE`, `NEW_VERSION`
+- Version comparison: Simple string comparison (works for semantic versioning)
+- Update notification: Orange-colored menu item for visibility
+- Help text: Dynamically includes 'u' option when update available
+
+### Version History
+- **v1.2.0**: Added automatic update checking, boxed UI, ESC key support, MCP tool installation, version display
+- **v1.1.0**: Added colored UI elements, full-width borders, improved menu system
+- **v1.0.0**: Initial release with basic account switching functionality
+
 ## Future Considerations
 
 - **Shell Completion**: Could add bash/zsh completion for account names
@@ -208,6 +260,7 @@ asterisk/
 - **Account Templates**: Could provide template configs for new accounts
 - **Usage Statistics**: Could track which accounts are used most
 - **Import/Export**: Could backup/restore account configurations
+- **Version comparison**: Could implement proper semantic version comparison instead of string comparison
 
 ## Installation & Usage
 

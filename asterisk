@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -282,14 +282,6 @@ show_menu() {
 
     draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
-
-    # Display update notification if available
-    if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        draw_line "${ORANGE}Update available: v${NEW_VERSION}${NC}"
-        draw_line "Run: curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh | sudo bash"
-        draw_empty_line
-    fi
-
     draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
@@ -312,6 +304,12 @@ show_menu() {
         fi
     done
     draw_empty_line
+
+    # Add update option if available
+    if [ "$UPDATE_AVAILABLE" = "true" ]; then
+        draw_line "${ORANGE}u) Update to latest version: v${NEW_VERSION}${NC}"
+    fi
+
     # Add edit settings option
     draw_line "e) Edit settings.json"
 
@@ -320,7 +318,11 @@ show_menu() {
 
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
-    printf " Press a key (1-$((i-1)), e, m, first letter, Enter for Default, ESC to exit): "
+    if [ "$UPDATE_AVAILABLE" = "true" ]; then
+        printf " Press a key (1-$((i-1)), u, e, m, first letter, Enter for Default, ESC to exit): "
+    else
+        printf " Press a key (1-$((i-1)), e, m, first letter, Enter for Default, ESC to exit): "
+    fi
     # Read single character without requiring enter
     read -n1 -s choice
     echo # Add newline after input
@@ -329,6 +331,17 @@ show_menu() {
     if [[ "$choice" = $'\x1b' ]]; then
         clear
         exit 0
+    fi
+
+    # Handle update option (U or u)
+    if [[ "$choice" = "U" || "$choice" = "u" ]]; then
+        if [ "$UPDATE_AVAILABLE" = "true" ]; then
+            clear
+            echo "Updating Asterisk to v${NEW_VERSION}..."
+            echo ""
+            curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh | sudo bash
+            exit 0
+        fi
     fi
 
     # Handle edit option (E or e)
