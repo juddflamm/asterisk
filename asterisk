@@ -297,7 +297,7 @@ show_menu() {
 
     # Handle ESC (exit)
     if [[ "$choice" = $'\x1b' ]]; then
-        echo "Exiting..."
+        clear
         exit 0
     fi
 
