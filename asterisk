@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.3.2"
+VERSION="1.3.3"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -195,11 +195,12 @@ show_mcp_menu() {
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
     draw_line "1) Playwright MCP Tool"
+    draw_line "2) Atlassian MCP Tool"
     draw_empty_line
     draw_line "b) Back to main menu"
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
-    printf " Press a key (1, b, ESC): "
+    printf " Press a key (1-2, b, ESC): "
     read -n1 -s tool_choice
     echo # Add newline after input
 
@@ -217,6 +218,9 @@ show_mcp_menu() {
     if [[ "$tool_choice" = "1" || "$tool_choice" = "P" || "$tool_choice" = "p" ]]; then
         mcp_tool="Playwright MCP Tool"
         mcp_command="playwright npx @playwright/mcp@latest"
+    elif [[ "$tool_choice" = "2" || "$tool_choice" = "A" || "$tool_choice" = "a" ]]; then
+        mcp_tool="Atlassian MCP Tool"
+        mcp_command="--transport sse atlassian https://mcp.atlassian.com/v1/sse"
     else
         echo "Invalid selection. Please try again."
         sleep 2

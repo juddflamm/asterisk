@@ -9,7 +9,7 @@ This project creates a terminal command called `asterisk` that allows users to m
 
 ## Current Project Status (October 2025)
 
-**Version**: v1.3.1
+**Version**: See `version.txt` for current version
 **Installation**: One-command curl installer from GitHub
 **Interface**: Boxed UI with full-width borders, colored elements, single-key input
 **Terminology**: Uses "account profiles" to clarify these are Claude Code configuration folders
@@ -225,14 +225,16 @@ asterisk/
 ## Versioning & Updates
 
 ### Version Management
-**Current Version**: v1.2.0
+**Current Version**: Check `version.txt` file for the current version number.
 
-The version number is stored in **two locations** and must be updated in both places:
+The version number is stored in **two locations** and must be updated in both places when bumping versions:
 
-1. **`asterisk` script**: Line 3, `VERSION="1.2.0"`
-2. **`version.txt` file**: Contains only the version number (e.g., `1.2.0`)
+1. **`asterisk` script**: Line 3, `VERSION="x.x.x"`
+2. **`version.txt` file**: Contains only the version number (e.g., `1.3.3`)
 
 **IMPORTANT**: When bumping the version, update BOTH files to keep them in sync.
+
+**NOTE**: This documentation (CLAUDE.md) intentionally does NOT hardcode the version number. Always check `version.txt` for the current version to ensure accuracy.
 
 ### Automatic Update Checking
 
