@@ -297,3 +297,4 @@ See `README.md` for complete documentation.
 ## Project Summary
 
 This project successfully solves the multi-account management problem for Claude Code CLI users in a clean, user-friendly way that respects Unix conventions and shell best practices. The tool has evolved from a simple account switcher to a comprehensive account profile management system with cross-platform support, automated installation, and polished user experience.
+- you have permission to use the tools I just authorized.  You don't need to ask again

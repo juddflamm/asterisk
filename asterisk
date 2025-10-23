@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.3.3"
+VERSION="1.4.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -191,16 +191,20 @@ check_for_updates() {
 show_mcp_menu() {
     draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
-    draw_line "${WHITE}Select an MCP tool to install:${NC}"
+    draw_line "${WHITE}MCP Tools Management${NC}"
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
+    draw_line "${WHITE}Install MCP Tools:${NC}"
     draw_line "1) Playwright MCP Tool"
     draw_line "2) Atlassian MCP Tool"
+    draw_empty_line
+    draw_line "${WHITE}Manage MCP Tools:${NC}"
+    draw_line "r) Remove MCP Tool from a profile"
     draw_empty_line
     draw_line "b) Back to main menu"
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
-    printf " Press a key (1-2, b, ESC): "
+    printf " Press a key (1-2, r, b, ESC): "
     read -n1 -s tool_choice
     echo # Add newline after input
 
@@ -208,6 +212,13 @@ show_mcp_menu() {
     if [[ "$tool_choice" = $'\x1b' ]] || [[ "$tool_choice" = "B" || "$tool_choice" = "b" ]]; then
         clear
         show_menu "$@"
+        return
+    fi
+
+    # Handle remove option
+    if [[ "$tool_choice" = "R" || "$tool_choice" = "r" ]]; then
+        clear
+        show_profile_selection_for_mcp_removal "$@"
         return
     fi
 
@@ -268,7 +279,7 @@ show_profile_selection_for_mcp() {
     draw_line "b) Back to MCP tools menu"
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
-    printf " Press a key (1-$((i-1)), b, first letter, ESC): "
+    printf " Press a key (1-$((i-1)), b, first letter, Enter for Default, ESC): "
     read -n1 -s choice
     echo # Add newline after input
 
@@ -277,6 +288,11 @@ show_profile_selection_for_mcp() {
         clear
         show_mcp_menu "$@"
         return
+    fi
+
+    # Handle enter key (same as option 1 - default profile)
+    if [[ "$choice" = "" ]]; then
+        choice="1"
     fi
 
     # Handle first letter matching
@@ -305,34 +321,312 @@ show_profile_selection_for_mcp() {
         selected="${menu_options[$((choice-1))]}"
     fi
 
-    # Execute the MCP installation with selected profile
+    # Show scope selection with selected profile
     if [ -n "$selected" ]; then
         clear
         if [ "$selected" = "default" ]; then
-            echo "Installing $mcp_tool for $default_account (default) profile..."
-            echo "Running: claude mcp add $mcp_command"
-            echo ""
-            env -u CLAUDE_CONFIG_DIR claude mcp add $mcp_command
+            show_scope_selection_for_mcp "$mcp_tool" "$mcp_command" "$default_account (default)" "default" "$@"
         else
-            local config_dir="$ACCOUNTS_DIR/$selected"
-            if [ ! -d "$config_dir" ]; then
-                echo "Creating profile directory: $config_dir"
-                mkdir -p "$config_dir"
-            fi
-            echo "Installing $mcp_tool for $selected profile..."
-            echo "Running: claude mcp add $mcp_command"
-            echo ""
-            env CLAUDE_CONFIG_DIR="$config_dir" claude mcp add $mcp_command
+            show_scope_selection_for_mcp "$mcp_tool" "$mcp_command" "$selected" "$selected" "$@"
         fi
-
-        # Automatically return to MCP tools menu
-        echo ""
-        show_mcp_menu "$@"
     else
         echo "Invalid selection. Please try again."
         sleep 2
         clear
         show_profile_selection_for_mcp "$mcp_tool" "$mcp_command" "$@"
+    fi
+}
+
+# Function to show scope selection for MCP installation
+show_scope_selection_for_mcp() {
+    local mcp_tool="$1"
+    local mcp_command="$2"
+    local profile_display="$3"
+    local profile="$4"
+    shift 4
+
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
+    draw_empty_line
+    draw_line "${WHITE}Install $mcp_tool for: $profile_display${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+    draw_line "${WHITE}Select installation scope:${NC}"
+    draw_empty_line
+    draw_line "1) This project only (local scope)"
+    draw_line "2) All projects using this profile (user scope)"
+    draw_empty_line
+    draw_line "b) Back to profile selection"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-2, b, ESC): "
+    read -n1 -s scope_choice
+    echo # Add newline after input
+
+    # Handle ESC or back option
+    if [[ "$scope_choice" = $'\x1b' ]] || [[ "$scope_choice" = "B" || "$scope_choice" = "b" ]]; then
+        clear
+        show_profile_selection_for_mcp "$mcp_tool" "$mcp_command" "$@"
+        return
+    fi
+
+    # Determine scope
+    local scope=""
+    local scope_display=""
+    if [[ "$scope_choice" = "1" ]]; then
+        scope="--scope local"
+        scope_display="this project only"
+    elif [[ "$scope_choice" = "2" ]]; then
+        scope="--scope user"
+        scope_display="all projects using this profile"
+    else
+        echo "Invalid selection. Please try again."
+        sleep 2
+        clear
+        show_scope_selection_for_mcp "$mcp_tool" "$mcp_command" "$profile_display" "$profile" "$@"
+        return
+    fi
+
+    # Execute the MCP installation with selected profile and scope
+    clear
+    if [ "$profile" = "default" ]; then
+        echo "Installing $mcp_tool for $profile_display ($scope_display)..."
+        echo "Running: claude mcp add $scope $mcp_command"
+        echo ""
+        env -u CLAUDE_CONFIG_DIR claude mcp add $scope $mcp_command
+    else
+        local config_dir="$ACCOUNTS_DIR/$profile"
+        if [ ! -d "$config_dir" ]; then
+            echo "Creating profile directory: $config_dir"
+            mkdir -p "$config_dir"
+        fi
+        echo "Installing $mcp_tool for $profile ($scope_display)..."
+        echo "Running: claude mcp add $scope $mcp_command"
+        echo ""
+        env CLAUDE_CONFIG_DIR="$config_dir" claude mcp add $scope $mcp_command
+    fi
+
+    # Automatically return to MCP tools menu
+    echo ""
+    show_mcp_menu "$@"
+}
+
+# Function to get list of installed MCP tools for a profile
+get_mcp_tools_for_profile() {
+    local profile="$1"
+
+    if [ "$profile" = "default" ]; then
+        env -u CLAUDE_CONFIG_DIR claude mcp list 2>/dev/null
+    else
+        local config_dir="$ACCOUNTS_DIR/$profile"
+        env CLAUDE_CONFIG_DIR="$config_dir" claude mcp list 2>/dev/null
+    fi
+}
+
+# Function to show profile selection for MCP removal
+show_profile_selection_for_mcp_removal() {
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
+    draw_empty_line
+    draw_line "${WHITE}Select Profile to Remove MCP Tool From${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+
+    local default_account=$(get_default_account_name)
+    local accounts=($(get_account_names))
+    local menu_options=()
+    local i=1
+
+    # Add default account option first
+    draw_line "$i) $default_account (default)"
+    menu_options+=("default")
+    ((i++))
+
+    # Add account options
+    for account in "${accounts[@]}"; do
+        if [ -n "$account" ]; then
+            draw_line "$i) $account"
+            menu_options+=("$account")
+            ((i++))
+        fi
+    done
+    draw_empty_line
+    draw_line "b) Back to MCP tools menu"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-$((i-1)), b, first letter, Enter for Default, ESC): "
+    read -n1 -s choice
+    echo # Add newline after input
+
+    # Handle ESC or back option
+    if [[ "$choice" = $'\x1b' ]] || [[ "$choice" = "B" || "$choice" = "b" ]]; then
+        clear
+        show_mcp_menu "$@"
+        return
+    fi
+
+    # Handle enter key (same as option 1 - default profile)
+    if [[ "$choice" = "" ]]; then
+        choice="1"
+    fi
+
+    # Handle first letter matching
+    local selected=""
+    local choice_upper=$(echo "$choice" | tr '[:lower:]' '[:upper:]')
+    local default_first_letter=$(echo "$default_account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+
+    # Check default account first letter
+    if [[ "$choice_upper" = "$default_first_letter" ]]; then
+        selected="default"
+    else
+        # Check accounts from settings for first letter match
+        for account in "${menu_options[@]}"; do
+            if [ "$account" != "default" ]; then
+                local first_letter=$(echo "$account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+                if [[ "$choice_upper" = "$first_letter" ]]; then
+                    selected="$account"
+                    break
+                fi
+            fi
+        done
+    fi
+
+    # If no letter match found, try numeric choice
+    if [ -z "$selected" ] && [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $((i-1)) ]; then
+        selected="${menu_options[$((choice-1))]}"
+    fi
+
+    # Show MCP tool list for selected profile
+    if [ -n "$selected" ]; then
+        clear
+        if [ "$selected" = "default" ]; then
+            show_mcp_removal_menu "$default_account (default)" "default" "$@"
+        else
+            show_mcp_removal_menu "$selected" "$selected" "$@"
+        fi
+    else
+        echo "Invalid selection. Please try again."
+        sleep 2
+        clear
+        show_profile_selection_for_mcp_removal "$@"
+    fi
+}
+
+# Function to show MCP tool removal menu for a specific profile
+show_mcp_removal_menu() {
+    local profile_display="$1"
+    local profile="$2"
+    shift 2
+
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
+    draw_empty_line
+    draw_line "${WHITE}Remove MCP Tool from: $profile_display${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+
+    # Get list of installed MCP tools
+    local mcp_list=$(get_mcp_tools_for_profile "$profile")
+
+    if [ -z "$mcp_list" ]; then
+        draw_line "${YELLOW}No MCP tools installed for this profile${NC}"
+        draw_empty_line
+        draw_line "b) Back to profile selection"
+        draw_empty_line
+        draw_bottom_border "Written By Claude Code For Claude Code"
+        printf " Press a key (b, ESC): "
+        read -n1 -s choice
+        echo
+        clear
+        show_profile_selection_for_mcp_removal "$@"
+        return
+    fi
+
+    # Parse MCP tool names from the list output
+    local mcp_tools=()
+    while IFS= read -r line; do
+        # Skip empty lines, headers, status lines, and "No MCP" messages
+        if [[ -n "$line" && ! "$line" =~ ^(Name|----|\s*$|Checking|No) ]]; then
+            # Extract just the tool name (first word, remove trailing colon)
+            local tool_name=$(echo "$line" | awk '{print $1}' | sed 's/:$//')
+            if [ -n "$tool_name" ]; then
+                mcp_tools+=("$tool_name")
+            fi
+        fi
+    done <<< "$mcp_list"
+
+    if [ ${#mcp_tools[@]} -eq 0 ]; then
+        draw_line "${YELLOW}No MCP tools installed for this profile${NC}"
+        draw_empty_line
+        draw_line "b) Back to profile selection"
+        draw_empty_line
+        draw_bottom_border "Written By Claude Code For Claude Code"
+        printf " Press a key (b, ESC): "
+        read -n1 -s choice
+        echo
+        clear
+        show_profile_selection_for_mcp_removal "$@"
+        return
+    fi
+
+    # Display MCP tools
+    local i=1
+    for tool in "${mcp_tools[@]}"; do
+        draw_line "$i) $tool"
+        ((i++))
+    done
+
+    draw_empty_line
+    draw_line "b) Back to profile selection"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-${#mcp_tools[@]}, b, ESC): "
+    read -n1 -s choice
+    echo # Add newline after input
+
+    # Handle ESC or back option
+    if [[ "$choice" = $'\x1b' ]] || [[ "$choice" = "B" || "$choice" = "b" ]]; then
+        clear
+        show_profile_selection_for_mcp_removal "$@"
+        return
+    fi
+
+    # Validate numeric choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le ${#mcp_tools[@]} ]; then
+        local selected_tool="${mcp_tools[$((choice-1))]}"
+        clear
+
+        # Confirm removal
+        echo "Are you sure you want to remove '$selected_tool' from $profile_display?"
+        printf "Press 'y' to confirm, any other key to cancel: "
+        read -n1 -s confirm
+        echo
+        echo
+
+        if [[ "$confirm" = "Y" || "$confirm" = "y" ]]; then
+            echo "Removing $selected_tool from $profile_display..."
+            echo ""
+
+            if [ "$profile" = "default" ]; then
+                env -u CLAUDE_CONFIG_DIR claude mcp remove "$selected_tool"
+            else
+                local config_dir="$ACCOUNTS_DIR/$profile"
+                env CLAUDE_CONFIG_DIR="$config_dir" claude mcp remove "$selected_tool"
+            fi
+
+            echo ""
+            echo "${GREEN}MCP tool removed successfully!${NC}"
+            sleep 2
+        else
+            echo "Removal cancelled."
+            sleep 1
+        fi
+
+        # Return to MCP removal menu for same profile
+        clear
+        show_mcp_removal_menu "$profile_display" "$profile" "$@"
+    else
+        echo "Invalid selection. Please try again."
+        sleep 2
+        clear
+        show_mcp_removal_menu "$profile_display" "$profile" "$@"
     fi
 }
 
