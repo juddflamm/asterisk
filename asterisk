@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.4.1"
+VERSION="1.5.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -212,7 +212,7 @@ show_mcp_menu() {
     # Handle ESC or back option
     if [[ "$tool_choice" = $'\x1b' ]] || [[ "$tool_choice" = "B" || "$tool_choice" = "b" ]]; then
         clear
-        show_menu "$@"
+        show_menu "false" "$@"
         return
     fi
 
@@ -637,6 +637,9 @@ show_mcp_removal_menu() {
 
 # Function to show account selection menu
 show_menu() {
+    local skip_permissions="$1"
+    shift
+
     # Check if we should run update check (only on first load, stored in global var)
     if [ "$FIRST_MENU_LOAD" = "true" ]; then
         FIRST_MENU_LOAD="false"
@@ -649,7 +652,12 @@ show_menu() {
 
     draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
-    draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
+    if [ "$skip_permissions" = "true" ]; then
+        draw_line "${YELLOW}⚠ SKIP PERMISSIONS MODE ACTIVE ⚠${NC}"
+        draw_line "${WHITE}Select a profile to launch with --dangerously-skip-permissions${NC}"
+    else
+        draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
+    fi
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
 
@@ -684,12 +692,17 @@ show_menu() {
     # Add MCP tools option
     draw_line "m) Install MCP Tool"
 
+    # Add skip permissions option if not already in skip mode
+    if [ "$skip_permissions" != "true" ]; then
+        draw_line "s) Skip Permissions Mode (launch with --dangerously-skip-permissions)"
+    fi
+
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
     if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        printf " Press a key (1-$((i-1)), u, e, m, first letter, Enter for Default, ESC to exit): "
+        printf " Press a key (1-$((i-1)), u, e, m, s, first letter, Enter for Default, ESC to exit): "
     else
-        printf " Press a key (1-$((i-1)), e, m, first letter, Enter for Default, ESC to exit): "
+        printf " Press a key (1-$((i-1)), e, m, s, first letter, Enter for Default, ESC to exit): "
     fi
     # Read single character without requiring enter
     read -n1 -s choice
@@ -725,7 +738,16 @@ show_menu() {
         show_mcp_menu "$@"
         return
     fi
-    
+
+    # Handle skip permissions option (S or s)
+    if [[ "$choice" = "S" || "$choice" = "s" ]]; then
+        if [ "$skip_permissions" != "true" ]; then
+            clear
+            show_menu "true" "$@"
+            return
+        fi
+    fi
+
     # Handle enter key (same as option 1 - Personal)
     if [[ "$choice" = "" ]]; then
         choice="1"
@@ -762,20 +784,34 @@ show_menu() {
     if [ -n "$selected" ]; then
         clear
         if [ "$selected" = "default" ]; then
-            echo "Launching Claude Code CLI with $default_account profile..."
-            echo "Command: env -u CLAUDE_CONFIG_DIR claude $@"
-            echo ""
-            exec env -u CLAUDE_CONFIG_DIR claude "$@"
+            if [ "$skip_permissions" = "true" ]; then
+                echo "Launching Claude Code CLI with $default_account profile (skip permissions)..."
+                echo "Command: env -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions $@"
+                echo ""
+                exec env -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions "$@"
+            else
+                echo "Launching Claude Code CLI with $default_account profile..."
+                echo "Command: env -u CLAUDE_CONFIG_DIR claude $@"
+                echo ""
+                exec env -u CLAUDE_CONFIG_DIR claude "$@"
+            fi
         else
             local config_dir="$ACCOUNTS_DIR/$selected"
             if [ ! -d "$config_dir" ]; then
                 echo "Creating profile directory: $config_dir"
                 mkdir -p "$config_dir"
             fi
-            echo "Launching Claude Code CLI with $selected profile..."
-            echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
-            echo ""
-            exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
+            if [ "$skip_permissions" = "true" ]; then
+                echo "Launching Claude Code CLI with $selected profile (skip permissions)..."
+                echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude --dangerously-skip-permissions $@"
+                echo ""
+                exec env CLAUDE_CONFIG_DIR="$config_dir" claude --dangerously-skip-permissions "$@"
+            else
+                echo "Launching Claude Code CLI with $selected profile..."
+                echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
+                echo ""
+                exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
+            fi
         fi
     else
         echo "Invalid selection. Please try again."
@@ -805,8 +841,8 @@ main() {
     clear
     # Set flag for first menu load to check for updates
     FIRST_MENU_LOAD="true"
-    # Show menu
-    show_menu "$@"
+    # Show menu (pass "false" for skip_permissions, then all args)
+    show_menu "false" "$@"
 }
 
 # Run main function
