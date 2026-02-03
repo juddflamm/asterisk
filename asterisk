@@ -265,7 +265,7 @@ show_mcp_menu() {
         fi
 
         # Append the API key as an environment variable
-        mcp_command="$mcp_command --env PRODUCTBOARD_API_KEY=$api_key"
+        mcp_command="$mcp_command -e PRODUCTBOARD_API_KEY=$api_key"
     elif [[ "$tool_choice" = "5" ]]; then
         mcp_tool="Google Workspace MCP Tool"
 
@@ -295,7 +295,7 @@ show_mcp_menu() {
         fi
 
         # Build command with env vars in correct position (before google-workspace)
-        mcp_command="--transport stdio --env GOOGLE_OAUTH_CLIENT_ID=$client_id --env GOOGLE_OAUTH_CLIENT_SECRET=$client_secret google-workspace -- uvx workspace-mcp"
+        mcp_command="--transport stdio -e GOOGLE_OAUTH_CLIENT_ID=$client_id -e GOOGLE_OAUTH_CLIENT_SECRET=$client_secret google-workspace -- uvx workspace-mcp"
     else
         echo "Invalid selection. Please try again."
         sleep 2
