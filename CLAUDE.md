@@ -267,6 +267,7 @@ The script implements automatic update checking with these characteristics:
 - Help text: Dynamically includes 'u' option when update available
 
 ### Version History
+- **v1.8.1**: Added OAuth credential prompts for Google Workspace MCP Tool
 - **v1.7.0**: Added Google Workspace MCP Tool support
 - **v1.6.0**: Added ProductBoard MCP Tool support
 - **v1.3.1**: Added automatic settings migration from old to new format

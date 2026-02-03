@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.8.0"
+VERSION="1.8.1"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -268,7 +268,35 @@ show_mcp_menu() {
         mcp_command="$mcp_command --env PRODUCTBOARD_API_KEY=$api_key"
     elif [[ "$tool_choice" = "5" ]]; then
         mcp_tool="Google Workspace MCP Tool"
-        mcp_command="google-workspace npx github:taylorwilsdon/google_workspace_mcp"
+        mcp_command="--transport stdio google-workspace -- uvx workspace-mcp"
+
+        # Prompt for Google OAuth credentials
+        clear
+        echo ""
+        echo "${WHITE}Google Workspace MCP Tool Setup${NC}"
+        echo "=============================================="
+        echo ""
+        echo "This tool requires Google OAuth credentials."
+        echo ""
+        printf "Enter your Google OAuth Client ID: "
+        read client_id
+        echo ""
+        printf "Enter your Google OAuth Client Secret: "
+        read -s client_secret
+        echo # Add newline after hidden input
+        echo ""
+
+        # Validate that both credentials were provided
+        if [ -z "$client_id" ] || [ -z "$client_secret" ]; then
+            echo "${RED}Error: Both Client ID and Client Secret are required for Google Workspace MCP Tool${NC}"
+            sleep 2
+            clear
+            show_mcp_menu "$@"
+            return
+        fi
+
+        # Append the credentials as environment variables
+        mcp_command="$mcp_command --env GOOGLE_OAUTH_CLIENT_ID=$client_id --env GOOGLE_OAUTH_CLIENT_SECRET=$client_secret"
     else
         echo "Invalid selection. Please try again."
         sleep 2
