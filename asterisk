@@ -240,7 +240,32 @@ show_mcp_menu() {
         mcp_command="chrome-devtools npx chrome-devtools-mcp@latest"
     elif [[ "$tool_choice" = "4" ]]; then
         mcp_tool="ProductBoard MCP Tool"
-        mcp_command="productboard npx github:Enreign/productboard-mcp"
+        mcp_command="productboard npx github:kenjihikmatullah/productboard-mcp"
+
+        # Prompt for ProductBoard API key
+        clear
+        echo ""
+        echo "${WHITE}ProductBoard MCP Tool Setup${NC}"
+        echo "=============================================="
+        echo ""
+        echo "This tool requires a ProductBoard API key."
+        echo ""
+        printf "Enter your ProductBoard API key: "
+        read -s api_key
+        echo # Add newline after hidden input
+        echo ""
+
+        # Validate that API key was provided
+        if [ -z "$api_key" ]; then
+            echo "${RED}Error: API key is required for ProductBoard MCP Tool${NC}"
+            sleep 2
+            clear
+            show_mcp_menu "$@"
+            return
+        fi
+
+        # Append the API key as an environment variable
+        mcp_command="$mcp_command --env PRODUCTBOARD_API_KEY=$api_key"
     elif [[ "$tool_choice" = "5" ]]; then
         mcp_tool="Google Workspace MCP Tool"
         mcp_command="google-workspace npx github:taylorwilsdon/google_workspace_mcp"
