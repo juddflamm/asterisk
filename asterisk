@@ -294,8 +294,8 @@ show_mcp_menu() {
             return
         fi
 
-        # Build command with env vars in correct position (before google-workspace)
-        mcp_command="--transport stdio -e GOOGLE_OAUTH_CLIENT_ID=$client_id -e GOOGLE_OAUTH_CLIENT_SECRET=$client_secret google-workspace -- uvx workspace-mcp"
+        # Build command with env vars (-- separator automatically uses stdio transport)
+        mcp_command="google-workspace -e GOOGLE_OAUTH_CLIENT_ID=$client_id -e GOOGLE_OAUTH_CLIENT_SECRET=$client_secret -- uvx workspace-mcp"
     else
         echo "Invalid selection. Please try again."
         sleep 2
