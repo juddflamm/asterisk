@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.7.0"
+VERSION="1.8.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
