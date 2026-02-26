@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.8.2"
+VERSION="1.9.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -695,6 +695,112 @@ show_mcp_removal_menu() {
 }
 
 
+# Function to show profile selection for setup-token
+show_profile_selection_for_setup_token() {
+    draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
+    draw_empty_line
+    draw_line "${WHITE}Select Profile for Setup Token${NC}"
+    draw_line "${WHITE}==============================================${NC}"
+    draw_empty_line
+
+    local default_account=$(get_default_account_name)
+    local accounts=($(get_account_names))
+    local menu_options=()
+    local i=1
+
+    # Add default account option first
+    draw_line "$i) $default_account (default)"
+    menu_options+=("default")
+    ((i++))
+
+    # Add account options
+    for account in "${accounts[@]}"; do
+        if [ -n "$account" ]; then
+            draw_line "$i) $account"
+            menu_options+=("$account")
+            ((i++))
+        fi
+    done
+    draw_empty_line
+    draw_line "b) Back to main menu"
+    draw_empty_line
+    draw_bottom_border "Written By Claude Code For Claude Code"
+    printf " Press a key (1-$((i-1)), b, first letter, Enter for Default, ESC): "
+    read -n1 -s choice
+    echo # Add newline after input
+
+    # Handle ESC or back option
+    if [[ "$choice" = $'\x1b' ]] || [[ "$choice" = "B" || "$choice" = "b" ]]; then
+        clear
+        show_menu "false" "$@"
+        return
+    fi
+
+    # Handle enter key (same as option 1 - default profile)
+    if [[ "$choice" = "" ]]; then
+        choice="1"
+    fi
+
+    # Handle first letter matching
+    local selected=""
+    local choice_upper=$(echo "$choice" | tr '[:lower:]' '[:upper:]')
+    local default_first_letter=$(echo "$default_account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+
+    # Check default account first letter
+    if [[ "$choice_upper" = "$default_first_letter" ]]; then
+        selected="default"
+    else
+        # Check accounts from settings for first letter match
+        for account in "${menu_options[@]}"; do
+            if [ "$account" != "default" ]; then
+                local first_letter=$(echo "$account" | cut -c1 | tr '[:lower:]' '[:upper:]')
+                if [[ "$choice_upper" = "$first_letter" ]]; then
+                    selected="$account"
+                    break
+                fi
+            fi
+        done
+    fi
+
+    # If no letter match found, try numeric choice
+    if [ -z "$selected" ] && [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $((i-1)) ]; then
+        selected="${menu_options[$((choice-1))]}"
+    fi
+
+    # Execute setup-token for the selected profile
+    if [ -n "$selected" ]; then
+        clear
+        if [ "$selected" = "default" ]; then
+            echo "Running setup-token for $default_account profile..."
+            echo "Command: env -u CLAUDE_CONFIG_DIR claude setup-token"
+            echo ""
+            env -u CLAUDE_CONFIG_DIR claude setup-token
+        else
+            local config_dir="$ACCOUNTS_DIR/$selected"
+            if [ ! -d "$config_dir" ]; then
+                echo "Creating profile directory: $config_dir"
+                mkdir -p "$config_dir"
+            fi
+            echo "Running setup-token for $selected profile..."
+            echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude setup-token"
+            echo ""
+            env CLAUDE_CONFIG_DIR="$config_dir" claude setup-token
+        fi
+
+        # Return to main menu after completion
+        echo ""
+        echo "Press any key to return to the main menu..."
+        read -n1 -s
+        clear
+        show_menu "false" "$@"
+    else
+        echo "Invalid selection. Please try again."
+        sleep 2
+        clear
+        show_profile_selection_for_setup_token "$@"
+    fi
+}
+
 # Function to show account selection menu
 show_menu() {
     local skip_permissions="$1"
@@ -752,6 +858,9 @@ show_menu() {
     # Add MCP tools option
     draw_line "m) Install MCP Tool"
 
+    # Add setup token option
+    draw_line "t) Setup Token"
+
     # Add skip permissions option if not already in skip mode
     if [ "$skip_permissions" != "true" ]; then
         draw_line "s) Skip Permissions Mode (launch with --dangerously-skip-permissions)"
@@ -760,9 +869,9 @@ show_menu() {
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
     if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        printf " Press a key (1-$((i-1)), u, e, m, s, first letter, Enter for Default, ESC to exit): "
+        printf " Press a key (1-$((i-1)), u, e, m, t, s, first letter, Enter for Default, ESC to exit): "
     else
-        printf " Press a key (1-$((i-1)), e, m, s, first letter, Enter for Default, ESC to exit): "
+        printf " Press a key (1-$((i-1)), e, m, t, s, first letter, Enter for Default, ESC to exit): "
     fi
     # Read single character without requiring enter
     read -n1 -s choice
@@ -796,6 +905,13 @@ show_menu() {
     if [[ "$choice" = "M" || "$choice" = "m" ]]; then
         clear
         show_mcp_menu "$@"
+        return
+    fi
+
+    # Handle setup token option (T or t)
+    if [[ "$choice" = "T" || "$choice" = "t" ]]; then
+        clear
+        show_profile_selection_for_setup_token "$@"
         return
     fi
 
