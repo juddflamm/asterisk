@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.9.0"
+VERSION="1.10.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 
@@ -819,10 +819,10 @@ show_menu() {
     draw_top_border "${ORANGE}*${NC} ${WHITE}Asterisk${NC} v${VERSION}"
     draw_empty_line
     if [ "$skip_permissions" = "true" ]; then
-        draw_line "${YELLOW}⚠ SKIP PERMISSIONS MODE ACTIVE ⚠${NC}"
-        draw_line "${WHITE}Select a profile to launch with --dangerously-skip-permissions${NC}"
-    else
         draw_line "${WHITE}Select a profile to launch the Claude Code CLI${NC}"
+    else
+        draw_line "${YELLOW}⚠ PERMISSIONS MODE ACTIVE ⚠${NC}"
+        draw_line "${WHITE}Select a profile to launch without --dangerously-skip-permissions${NC}"
     fi
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
@@ -861,17 +861,25 @@ show_menu() {
     # Add setup token option
     draw_line "t) Setup Token"
 
-    # Add skip permissions option if not already in skip mode
-    if [ "$skip_permissions" != "true" ]; then
-        draw_line "s) Skip Permissions Mode (launch with --dangerously-skip-permissions)"
+    # Add permissions mode option when in skip mode (default)
+    if [ "$skip_permissions" = "true" ]; then
+        draw_line "s) Permissions Mode (launch without --dangerously-skip-permissions)"
     fi
 
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
     if [ "$UPDATE_AVAILABLE" = "true" ]; then
-        printf " Press a key (1-$((i-1)), u, e, m, t, s, first letter, Enter for Default, ESC to exit): "
+        if [ "$skip_permissions" = "true" ]; then
+            printf " Press a key (1-$((i-1)), u, e, m, t, s, first letter, Enter for Default, ESC to exit): "
+        else
+            printf " Press a key (1-$((i-1)), u, e, m, t, first letter, Enter for Default, ESC to exit): "
+        fi
     else
-        printf " Press a key (1-$((i-1)), e, m, t, s, first letter, Enter for Default, ESC to exit): "
+        if [ "$skip_permissions" = "true" ]; then
+            printf " Press a key (1-$((i-1)), e, m, t, s, first letter, Enter for Default, ESC to exit): "
+        else
+            printf " Press a key (1-$((i-1)), e, m, t, first letter, Enter for Default, ESC to exit): "
+        fi
     fi
     # Read single character without requiring enter
     read -n1 -s choice
@@ -915,11 +923,11 @@ show_menu() {
         return
     fi
 
-    # Handle skip permissions option (S or s)
+    # Handle permissions mode option (S or s)
     if [[ "$choice" = "S" || "$choice" = "s" ]]; then
-        if [ "$skip_permissions" != "true" ]; then
+        if [ "$skip_permissions" = "true" ]; then
             clear
-            show_menu "true" "$@"
+            show_menu "false" "$@"
             return
         fi
     fi
@@ -1017,8 +1025,8 @@ main() {
     clear
     # Set flag for first menu load to check for updates
     FIRST_MENU_LOAD="true"
-    # Show menu (pass "false" for skip_permissions, then all args)
-    show_menu "false" "$@"
+    # Show menu (pass "true" for skip_permissions by default, then all args)
+    show_menu "true" "$@"
 }
 
 # Run main function
