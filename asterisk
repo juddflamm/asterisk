@@ -1,8 +1,9 @@
 #!/bin/bash
 
-VERSION="1.10.0"
+VERSION="1.11.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
+AGENT_TEAMS_ENABLED="false"
 
 # Colors for output
 RED='\033[0;31m'
@@ -824,6 +825,9 @@ show_menu() {
         draw_line "${YELLOW}⚠ PERMISSIONS MODE ACTIVE ⚠${NC}"
         draw_line "${WHITE}Select a profile to launch without --dangerously-skip-permissions${NC}"
     fi
+    if [ "$AGENT_TEAMS_ENABLED" = "true" ]; then
+        draw_line "${GREEN}✦ AGENT TEAMS ENABLED ✦${NC}"
+    fi
     draw_line "${WHITE}==============================================${NC}"
     draw_empty_line
 
@@ -866,19 +870,26 @@ show_menu() {
         draw_line "s) Permissions Mode (launch without --dangerously-skip-permissions)"
     fi
 
+    # Add agent teams toggle option
+    if [ "$AGENT_TEAMS_ENABLED" = "true" ]; then
+        draw_line "a) Disable Agent Teams"
+    else
+        draw_line "a) Enable Agent Teams"
+    fi
+
     draw_empty_line
     draw_bottom_border "Written By Claude Code For Claude Code"
     if [ "$UPDATE_AVAILABLE" = "true" ]; then
         if [ "$skip_permissions" = "true" ]; then
-            printf " Press a key (1-$((i-1)), u, e, m, t, s, first letter, Enter for Default, ESC to exit): "
+            printf " Press a key (1-$((i-1)), u, e, m, t, s, a, first letter, Enter for Default, ESC to exit): "
         else
-            printf " Press a key (1-$((i-1)), u, e, m, t, first letter, Enter for Default, ESC to exit): "
+            printf " Press a key (1-$((i-1)), u, e, m, t, a, first letter, Enter for Default, ESC to exit): "
         fi
     else
         if [ "$skip_permissions" = "true" ]; then
-            printf " Press a key (1-$((i-1)), e, m, t, s, first letter, Enter for Default, ESC to exit): "
+            printf " Press a key (1-$((i-1)), e, m, t, s, a, first letter, Enter for Default, ESC to exit): "
         else
-            printf " Press a key (1-$((i-1)), e, m, t, first letter, Enter for Default, ESC to exit): "
+            printf " Press a key (1-$((i-1)), e, m, t, a, first letter, Enter for Default, ESC to exit): "
         fi
     fi
     # Read single character without requiring enter
@@ -932,6 +943,18 @@ show_menu() {
         fi
     fi
 
+    # Handle agent teams toggle (A or a)
+    if [[ "$choice" = "A" || "$choice" = "a" ]]; then
+        if [ "$AGENT_TEAMS_ENABLED" = "true" ]; then
+            AGENT_TEAMS_ENABLED="false"
+        else
+            AGENT_TEAMS_ENABLED="true"
+        fi
+        clear
+        show_menu "$skip_permissions" "$@"
+        return
+    fi
+
     # Handle enter key (same as option 1 - Personal)
     if [[ "$choice" = "" ]]; then
         choice="1"
@@ -967,17 +990,26 @@ show_menu() {
     # Execute the selection
     if [ -n "$selected" ]; then
         clear
+
+        # Build agent teams env prefix
+        local agent_teams_env=""
+        local agent_teams_label=""
+        if [ "$AGENT_TEAMS_ENABLED" = "true" ]; then
+            agent_teams_env="CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=true"
+            agent_teams_label=" + agent teams"
+        fi
+
         if [ "$selected" = "default" ]; then
             if [ "$skip_permissions" = "true" ]; then
-                echo "Launching Claude Code CLI with $default_account profile (skip permissions)..."
-                echo "Command: env -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions $@"
+                echo "Launching Claude Code CLI with $default_account profile (skip permissions${agent_teams_label})..."
+                echo "Command: env ${agent_teams_env:+$agent_teams_env }-u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions $@"
                 echo ""
-                exec env -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions "$@"
+                exec env ${agent_teams_env:+$agent_teams_env} -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions "$@"
             else
-                echo "Launching Claude Code CLI with $default_account profile..."
-                echo "Command: env -u CLAUDE_CONFIG_DIR claude $@"
+                echo "Launching Claude Code CLI with $default_account profile${agent_teams_label}..."
+                echo "Command: env ${agent_teams_env:+$agent_teams_env }-u CLAUDE_CONFIG_DIR claude $@"
                 echo ""
-                exec env -u CLAUDE_CONFIG_DIR claude "$@"
+                exec env ${agent_teams_env:+$agent_teams_env} -u CLAUDE_CONFIG_DIR claude "$@"
             fi
         else
             local config_dir="$ACCOUNTS_DIR/$selected"
@@ -986,15 +1018,15 @@ show_menu() {
                 mkdir -p "$config_dir"
             fi
             if [ "$skip_permissions" = "true" ]; then
-                echo "Launching Claude Code CLI with $selected profile (skip permissions)..."
-                echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude --dangerously-skip-permissions $@"
+                echo "Launching Claude Code CLI with $selected profile (skip permissions${agent_teams_label})..."
+                echo "Command: env ${agent_teams_env:+$agent_teams_env }CLAUDE_CONFIG_DIR=\"$config_dir\" claude --dangerously-skip-permissions $@"
                 echo ""
-                exec env CLAUDE_CONFIG_DIR="$config_dir" claude --dangerously-skip-permissions "$@"
+                exec env ${agent_teams_env:+$agent_teams_env} CLAUDE_CONFIG_DIR="$config_dir" claude --dangerously-skip-permissions "$@"
             else
-                echo "Launching Claude Code CLI with $selected profile..."
-                echo "Command: env CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
+                echo "Launching Claude Code CLI with $selected profile${agent_teams_label}..."
+                echo "Command: env ${agent_teams_env:+$agent_teams_env }CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
                 echo ""
-                exec env CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
+                exec env ${agent_teams_env:+$agent_teams_env} CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
             fi
         fi
     else
