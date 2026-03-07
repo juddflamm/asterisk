@@ -288,7 +288,7 @@ The script implements automatic update checking with these characteristics:
 
 ## Installation & Usage
 
-**Current Installation Method**: 
+**Current Installation Method**:
 ```bash
 sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
 ```
@@ -296,6 +296,19 @@ sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/aste
 **Usage**: Simply run `asterisk` command to see interactive menu.
 
 See `README.md` for complete documentation.
+
+## Development Workflow
+
+**How deployment works**: The install script (`install.sh`) downloads the `asterisk` file directly from GitHub's `main` branch. There is no build step — pushing to `main` IS the deployment.
+
+**After merging changes to main and pushing**:
+1. Run the installer to update the local copy:
+   ```bash
+   sudo /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/juddflamm/asterisk/main/install.sh)"
+   ```
+2. Or press `u` in the asterisk menu if the version was bumped (it self-updates)
+
+**Do NOT** manually copy the file with `sudo cp` — always use the installer so the process is consistent.
 
 ## Project Summary
 
