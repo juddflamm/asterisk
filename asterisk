@@ -93,8 +93,10 @@ setup_accounts_dir() {
     # Create default settings.json
     cat > "$SETTINGS_FILE" << 'EOF'
 {
-  "defaultAccountName": "Personal",
-  "additionalAccounts": {
+  "accounts": {
+    "Personal": {
+      "default": true
+    },
     "Work": {},
     "Other": {}
   }
@@ -105,63 +107,75 @@ EOF
     echo "Edit the settings.json file to configure account profiles for your Claude Code accounts."
 }
 
-# Function to migrate old settings format to new format
+# Function to migrate old settings format to new unified accounts format
 migrate_settings_if_needed() {
     if command -v jq > /dev/null 2>&1; then
+        # Skip if already in new format (has "accounts" with default marker)
+        if jq -e '.accounts | to_entries[] | select(.value.default == true)' "$SETTINGS_FILE" > /dev/null 2>&1; then
+            return
+        fi
+
+        echo "Migrating settings.json to new format..."
         local temp_file="${SETTINGS_FILE}.tmp"
 
-        # Step 1: migrate old "accounts" array key to "additionalAccounts"
-        if jq -e 'has("accounts") and (has("additionalAccounts") | not)' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            echo "Migrating settings.json: renaming 'accounts' to 'additionalAccounts'..."
-            jq '{defaultAccountName: "Personal", additionalAccounts: .accounts}' "$SETTINGS_FILE" > "$temp_file"
-            mv "$temp_file" "$SETTINGS_FILE"
-            echo "Migration step 1 complete."
-        fi
+        jq '
+            # Resolve default account name from any old format
+            (
+                if has("defaultAccountName") then .defaultAccountName
+                elif has("defaultAccount") then (.defaultAccount | keys[0])
+                else "Personal"
+                end
+            ) as $defaultName |
 
-        # Step 2: migrate additionalAccounts from array to object format
-        if jq -e '.additionalAccounts | type == "array"' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            echo "Migrating settings.json: converting additionalAccounts from array to object..."
-            jq '.additionalAccounts = (.additionalAccounts | map({key: ., value: {}}) | from_entries)' "$SETTINGS_FILE" > "$temp_file"
-            mv "$temp_file" "$SETTINGS_FILE"
-            echo "Migration step 2 complete."
-        fi
-    else
-        # Fallback without jq: handle legacy "accounts" key rename only
-        if grep -q '"accounts"' "$SETTINGS_FILE" && ! grep -q '"additionalAccounts"' "$SETTINGS_FILE"; then
-            echo "Migrating settings.json (no jq)..."
-            local temp_file="${SETTINGS_FILE}.tmp"
-            sed 's/"accounts"/"additionalAccounts"/' "$SETTINGS_FILE" | \
-            sed 's/{/{\'$'\n''  "defaultAccountName": "Personal",/' > "$temp_file"
-            mv "$temp_file" "$SETTINGS_FILE"
-            echo "Migration complete."
-        fi
+            # Resolve default account options from any old format
+            (
+                if has("defaultAccountOptions") then .defaultAccountOptions
+                elif has("defaultAccount") then (.defaultAccount[$defaultName] // {})
+                else {}
+                end
+            ) as $defaultOpts |
+
+            # Resolve additional accounts from any old format
+            (
+                if has("additionalAccounts") then
+                    if (.additionalAccounts | type) == "array"
+                    then (.additionalAccounts | map({key: ., value: {}}) | from_entries)
+                    else .additionalAccounts
+                    end
+                elif has("accounts") then
+                    if (.accounts | type) == "array"
+                    then (.accounts | map({key: ., value: {}}) | from_entries)
+                    else .accounts
+                    end
+                else {}
+                end
+            ) as $additional |
+
+            {accounts: ({($defaultName): ($defaultOpts + {default: true})} + $additional)}
+        ' "$SETTINGS_FILE" > "$temp_file"
+        mv "$temp_file" "$SETTINGS_FILE"
+        echo "Migration complete."
     fi
 }
 
 # Function to get default account name
 get_default_account_name() {
     if command -v jq > /dev/null 2>&1; then
-        jq -r '.defaultAccountName // "Personal"' "$SETTINGS_FILE" 2>/dev/null
+        jq -r '(.accounts | to_entries[] | select(.value.default == true) | .key) // "Personal"' "$SETTINGS_FILE" 2>/dev/null
     else
-        # Fallback without jq - basic parsing
-        local default=$(grep -o '"defaultAccountName"[[:space:]]*:[[:space:]]*"[^"]*"' "$SETTINGS_FILE" | sed 's/.*"defaultAccountName"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
-        if [ -z "$default" ]; then
-            echo "Personal"
-        else
-            echo "$default"
-        fi
+        # Fallback without jq - look for account with "default": true
+        grep -B1 '"default"' "$SETTINGS_FILE" | grep -o '"[^"]*"' | head -1 | sed 's/"//g'
     fi
 }
 
-# Function to parse JSON and get additional account names
+# Function to get non-default account names
 get_account_names() {
     if command -v jq > /dev/null 2>&1; then
-        jq -r '.additionalAccounts | keys[]?' "$SETTINGS_FILE" 2>/dev/null
+        jq -r '.accounts | to_entries[] | select(.value.default != true) | .key' "$SETTINGS_FILE" 2>/dev/null
     else
-        # Fallback without jq - extract keys from additionalAccounts object
-        # Note: profile env vars require jq
+        # Fallback without jq - extract all account-like keys, skip known non-account keys
         grep -E '^\s+"[^"]+"\s*:\s*\{' "$SETTINGS_FILE" | \
-            grep -v -E '"defaultAccountOptions"|"additionalAccounts"|"env"' | \
+            grep -v -E '"accounts"|"env"' | \
             sed 's/.*"\([^"]*\)".*/\1/'
     fi
 }
@@ -1020,16 +1034,12 @@ show_menu() {
             profile_name="$selected"
         fi
 
-        # Look up profile-specific env vars from the profile's own object
+        # Look up profile-specific env vars from the accounts object
         local -a env_args=()
         local profile_env_label=""
         if command -v jq > /dev/null 2>&1; then
             local env_pairs
-            if [ "$selected" = "default" ]; then
-                env_pairs=$(jq -r '.defaultAccountOptions.env // {} | to_entries[] | "\(.key)=\(.value)"' "$SETTINGS_FILE" 2>/dev/null)
-            else
-                env_pairs=$(jq -r --arg p "$profile_name" '.additionalAccounts[$p].env // {} | to_entries[] | "\(.key)=\(.value)"' "$SETTINGS_FILE" 2>/dev/null)
-            fi
+            env_pairs=$(jq -r --arg p "$profile_name" '.accounts[$p].env // {} | to_entries[] | "\(.key)=\(.value)"' "$SETTINGS_FILE" 2>/dev/null)
             if [ -n "$env_pairs" ]; then
                 while IFS= read -r kv; do
                     env_args+=("$kv")

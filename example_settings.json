@@ -1,12 +1,12 @@
 {
-  "defaultAccountName": "Personal",
-  "defaultAccountOptions": {
-    "env": {
-      "ANTHROPIC_AUTH_TOKEN": "your-auth-token-here",
-      "ANTHROPIC_BASE_URL": "https://your-custom-endpoint.com"
-    }
-  },
-  "additionalAccounts": {
+  "accounts": {
+    "Personal": {
+      "default": true,
+      "env": {
+        "ANTHROPIC_AUTH_TOKEN": "your-auth-token-here",
+        "ANTHROPIC_BASE_URL": "https://your-custom-endpoint.com"
+      }
+    },
     "Work": {
       "env": {
         "ANTHROPIC_AUTH_TOKEN": "work-auth-token-here"
