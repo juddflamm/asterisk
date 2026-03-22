@@ -129,50 +129,25 @@ migrate_settings_if_needed() {
     local temp_file="${SETTINGS_FILE}.tmp"
 
     jq --arg v "$VERSION" '
-        # If already in new unified format, just stamp the version
+        # Already in new format - just stamp the version
         if (has("accounts") and ((.accounts | type) == "object") and
             ((.accounts | to_entries | map(select(.value.default == true)) | length) > 0))
         then
             . + {settingsVersion: $v}
 
-        # Otherwise migrate from old format
-        else
-            # Resolve default account name (handles all old format variations)
-            (
-                if has("defaultAccountName") then .defaultAccountName
-                elif has("defaultAccount") then (.defaultAccount | keys[0])
-                else "Personal"
-                end
-            ) as $defaultName |
+        # v1.3.0–v1.11.0 format: defaultAccountName + additionalAccounts array
+        elif has("defaultAccountName") then
+            .defaultAccountName as $defaultName |
+            (.additionalAccounts | map({key: ., value: {}}) | from_entries) as $additional |
+            {settingsVersion: $v, accounts: ({($defaultName): {default: true}} + $additional)}
 
-            # Resolve default account options
-            (
-                if has("defaultAccountOptions") then .defaultAccountOptions
-                elif has("defaultAccount") then (.defaultAccount[$defaultName] // {})
-                else {}
-                end
-            ) as $defaultOpts |
+        # Pre-v1.3.0 format: accounts array
+        elif (has("accounts") and ((.accounts | type) == "array")) then
+            (.accounts | map({key: ., value: {}}) | from_entries) as $additional |
+            {settingsVersion: $v, accounts: ({Personal: {default: true}} + $additional)}
 
-            # Resolve additional accounts (handles array or object)
-            (
-                if has("additionalAccounts") then
-                    if (.additionalAccounts | type) == "array"
-                    then (.additionalAccounts | map({key: ., value: {}}) | from_entries)
-                    else .additionalAccounts
-                    end
-                elif has("accounts") then
-                    if (.accounts | type) == "array"
-                    then (.accounts | map({key: ., value: {}}) | from_entries)
-                    else .accounts
-                    end
-                else {}
-                end
-            ) as $additional |
-
-            {
-                settingsVersion: $v,
-                accounts: ({($defaultName): ($defaultOpts + {default: true})} + $additional)
-            }
+        # Unknown - stamp version and leave alone
+        else . + {settingsVersion: $v}
         end
     ' "$SETTINGS_FILE" > "$temp_file"
     mv "$temp_file" "$SETTINGS_FILE"
