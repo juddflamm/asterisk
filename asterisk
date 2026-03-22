@@ -90,8 +90,11 @@ setup_accounts_dir() {
     echo "Setting up Asterisk's config directory, $ACCOUNTS_DIR..."
     mkdir -p "$ACCOUNTS_DIR"
     
-    # Create default settings.json
-    cat > "$SETTINGS_FILE" << 'EOF'
+    # Create default settings.json (stamped with current version so migration is skipped on fresh install)
+    if command -v jq > /dev/null 2>&1; then
+        jq -n --arg v "$VERSION" '{settingsVersion: $v, accounts: {Personal: {default: true}, Work: {}, Other: {}}}' > "$SETTINGS_FILE"
+    else
+        cat > "$SETTINGS_FILE" << 'EOF'
 {
   "accounts": {
     "Personal": {
@@ -102,24 +105,39 @@ setup_accounts_dir() {
   }
 }
 EOF
+    fi
     
     echo "Created $ACCOUNTS_DIR directory and settings.json"
     echo "Edit the settings.json file to configure account profiles for your Claude Code accounts."
 }
 
-# Function to migrate old settings format to new unified accounts format
+# Function to migrate settings to the current version's format.
+# Runs once per version upgrade by stamping settingsVersion in settings.json.
 migrate_settings_if_needed() {
-    if command -v jq > /dev/null 2>&1; then
-        # Skip if already in new format (has "accounts" with default marker)
-        if jq -e '.accounts | to_entries[] | select(.value.default == true)' "$SETTINGS_FILE" > /dev/null 2>&1; then
-            return
-        fi
+    if ! command -v jq > /dev/null 2>&1; then
+        return
+    fi
 
-        echo "Migrating settings.json to new format..."
-        local temp_file="${SETTINGS_FILE}.tmp"
+    # Skip if settings are already stamped with the current version
+    local settings_version
+    settings_version=$(jq -r '.settingsVersion // ""' "$SETTINGS_FILE" 2>/dev/null)
+    if [ "$settings_version" = "$VERSION" ]; then
+        return
+    fi
 
-        jq '
-            # Resolve default account name from any old format
+    echo "Upgrading settings.json to v${VERSION}..."
+    local temp_file="${SETTINGS_FILE}.tmp"
+
+    jq --arg v "$VERSION" '
+        # If already in new unified format, just stamp the version
+        if (has("accounts") and ((.accounts | type) == "object") and
+            ((.accounts | to_entries | map(select(.value.default == true)) | length) > 0))
+        then
+            . + {settingsVersion: $v}
+
+        # Otherwise migrate from old format
+        else
+            # Resolve default account name (handles all old format variations)
             (
                 if has("defaultAccountName") then .defaultAccountName
                 elif has("defaultAccount") then (.defaultAccount | keys[0])
@@ -127,7 +145,7 @@ migrate_settings_if_needed() {
                 end
             ) as $defaultName |
 
-            # Resolve default account options from any old format
+            # Resolve default account options
             (
                 if has("defaultAccountOptions") then .defaultAccountOptions
                 elif has("defaultAccount") then (.defaultAccount[$defaultName] // {})
@@ -135,7 +153,7 @@ migrate_settings_if_needed() {
                 end
             ) as $defaultOpts |
 
-            # Resolve additional accounts from any old format
+            # Resolve additional accounts (handles array or object)
             (
                 if has("additionalAccounts") then
                     if (.additionalAccounts | type) == "array"
@@ -151,11 +169,14 @@ migrate_settings_if_needed() {
                 end
             ) as $additional |
 
-            {accounts: ({($defaultName): ($defaultOpts + {default: true})} + $additional)}
-        ' "$SETTINGS_FILE" > "$temp_file"
-        mv "$temp_file" "$SETTINGS_FILE"
-        echo "Migration complete."
-    fi
+            {
+                settingsVersion: $v,
+                accounts: ({($defaultName): ($defaultOpts + {default: true})} + $additional)
+            }
+        end
+    ' "$SETTINGS_FILE" > "$temp_file"
+    mv "$temp_file" "$SETTINGS_FILE"
+    echo "Settings upgraded to v${VERSION}."
 }
 
 # Function to get default account name
