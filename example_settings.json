@@ -1,13 +1,17 @@
 {
   "defaultAccountName": "Personal",
-  "additionalAccounts": [
-    "Work",
-    "Other"
-  ],
-  "profileEnv": {
-    "Work": {
+  "defaultAccountOptions": {
+    "env": {
       "ANTHROPIC_AUTH_TOKEN": "your-auth-token-here",
       "ANTHROPIC_BASE_URL": "https://your-custom-endpoint.com"
     }
+  },
+  "additionalAccounts": {
+    "Work": {
+      "env": {
+        "ANTHROPIC_AUTH_TOKEN": "work-auth-token-here"
+      }
+    },
+    "Other": {}
   }
 }
