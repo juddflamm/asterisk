@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.12.0"
+VERSION="1.12.1"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 AGENT_TEAMS_ENABLED="false"
