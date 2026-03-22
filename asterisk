@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.11.0"
+VERSION="1.12.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 AGENT_TEAMS_ENABLED="false"
@@ -999,17 +999,42 @@ show_menu() {
             agent_teams_label=" + agent teams"
         fi
 
+        # Get profile name for env lookup
+        local profile_name
         if [ "$selected" = "default" ]; then
+            profile_name="$default_account"
+        else
+            profile_name="$selected"
+        fi
+
+        # Look up profile-specific anthropic env vars from profileEnv section
+        local auth_token=""
+        local base_url=""
+        if command -v jq > /dev/null 2>&1; then
+            auth_token=$(jq -r --arg p "$profile_name" '.profileEnv[$p].ANTHROPIC_AUTH_TOKEN // ""' "$SETTINGS_FILE" 2>/dev/null)
+            base_url=$(jq -r --arg p "$profile_name" '.profileEnv[$p].ANTHROPIC_BASE_URL // ""' "$SETTINGS_FILE" 2>/dev/null)
+        fi
+
+        # Build env args array using safe array expansion
+        # Always unset ANTHROPIC_AUTH_TOKEN and ANTHROPIC_BASE_URL to prevent leakage from parent env
+        local -a env_args=(-u ANTHROPIC_AUTH_TOKEN -u ANTHROPIC_BASE_URL)
+        [ -n "$auth_token" ] && env_args+=("ANTHROPIC_AUTH_TOKEN=$auth_token")
+        [ -n "$base_url" ] && env_args+=("ANTHROPIC_BASE_URL=$base_url")
+        [ -n "$agent_teams_env" ] && env_args+=("$agent_teams_env")
+
+        local auth_label=""
+        [ -n "$auth_token" ] && auth_label=" + custom auth"
+
+        if [ "$selected" = "default" ]; then
+            env_args+=(-u CLAUDE_CONFIG_DIR)
             if [ "$skip_permissions" = "true" ]; then
-                echo "Launching Claude Code CLI with $default_account profile (skip permissions${agent_teams_label})..."
-                echo "Command: env ${agent_teams_env:+$agent_teams_env }-u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions $@"
+                echo "Launching Claude Code CLI with $default_account profile (skip permissions${agent_teams_label}${auth_label})..."
                 echo ""
-                exec env ${agent_teams_env:+$agent_teams_env} -u CLAUDE_CONFIG_DIR claude --dangerously-skip-permissions "$@"
+                exec env "${env_args[@]}" claude --dangerously-skip-permissions "$@"
             else
-                echo "Launching Claude Code CLI with $default_account profile${agent_teams_label}..."
-                echo "Command: env ${agent_teams_env:+$agent_teams_env }-u CLAUDE_CONFIG_DIR claude $@"
+                echo "Launching Claude Code CLI with $default_account profile${agent_teams_label}${auth_label}..."
                 echo ""
-                exec env ${agent_teams_env:+$agent_teams_env} -u CLAUDE_CONFIG_DIR claude "$@"
+                exec env "${env_args[@]}" claude "$@"
             fi
         else
             local config_dir="$ACCOUNTS_DIR/$selected"
@@ -1017,16 +1042,15 @@ show_menu() {
                 echo "Creating profile directory: $config_dir"
                 mkdir -p "$config_dir"
             fi
+            env_args+=("CLAUDE_CONFIG_DIR=$config_dir")
             if [ "$skip_permissions" = "true" ]; then
-                echo "Launching Claude Code CLI with $selected profile (skip permissions${agent_teams_label})..."
-                echo "Command: env ${agent_teams_env:+$agent_teams_env }CLAUDE_CONFIG_DIR=\"$config_dir\" claude --dangerously-skip-permissions $@"
+                echo "Launching Claude Code CLI with $selected profile (skip permissions${agent_teams_label}${auth_label})..."
                 echo ""
-                exec env ${agent_teams_env:+$agent_teams_env} CLAUDE_CONFIG_DIR="$config_dir" claude --dangerously-skip-permissions "$@"
+                exec env "${env_args[@]}" claude --dangerously-skip-permissions "$@"
             else
-                echo "Launching Claude Code CLI with $selected profile${agent_teams_label}..."
-                echo "Command: env ${agent_teams_env:+$agent_teams_env }CLAUDE_CONFIG_DIR=\"$config_dir\" claude $@"
+                echo "Launching Claude Code CLI with $selected profile${agent_teams_label}${auth_label}..."
                 echo ""
-                exec env ${agent_teams_env:+$agent_teams_env} CLAUDE_CONFIG_DIR="$config_dir" claude "$@"
+                exec env "${env_args[@]}" claude "$@"
             fi
         fi
     else
