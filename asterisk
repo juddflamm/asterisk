@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="1.12.1"
+VERSION="1.13.0"
 ACCOUNTS_DIR="$HOME/.asterisk"
 SETTINGS_FILE="$ACCOUNTS_DIR/settings.json"
 AGENT_TEAMS_ENABLED="false"
@@ -1079,6 +1079,63 @@ show_menu() {
     fi
 }
 
+# Launch claude with a named profile, bypassing the interactive menu.
+# Usage: asterisk --profile <name>  (or -p <name>)
+# Profile can be the exact account name (e.g. "Kuali") or "default".
+launch_profile() {
+    local profile_arg="$1"
+    shift
+
+    local default_account
+    default_account=$(get_default_account_name)
+
+    # Resolve to "default" or a named account
+    local selected=""
+    if [ "$profile_arg" = "default" ] || [ "$profile_arg" = "$default_account" ]; then
+        selected="default"
+    else
+        local accounts=()
+        while IFS= read -r account; do
+            [ -n "$account" ] && accounts+=("$account")
+        done < <(get_account_names)
+        for account in "${accounts[@]}"; do
+            if [ "$account" = "$profile_arg" ]; then
+                selected="$account"
+                break
+            fi
+        done
+        if [ -z "$selected" ]; then
+            echo "Error: profile '$profile_arg' not found."
+            echo "Available: $default_account (default)$(get_account_names | sed 's/^/, /')"
+            exit 1
+        fi
+    fi
+
+    # Build env args — profile-specific env vars from settings.json
+    local -a env_args=()
+    if command -v jq > /dev/null 2>&1; then
+        local lookup_name
+        [ "$selected" = "default" ] && lookup_name="$default_account" || lookup_name="$selected"
+        local env_pairs
+        env_pairs=$(jq -r --arg p "$lookup_name" '.accounts[$p].env // {} | to_entries[] | "\(.key)=\(.value)"' "$SETTINGS_FILE" 2>/dev/null)
+        if [ -n "$env_pairs" ]; then
+            while IFS= read -r kv; do
+                env_args+=("$kv")
+            done <<< "$env_pairs"
+        fi
+    fi
+
+    if [ "$selected" = "default" ]; then
+        env_args+=(-u CLAUDE_CONFIG_DIR)
+        exec env "${env_args[@]}" claude --dangerously-skip-permissions "$@"
+    else
+        local config_dir="$ACCOUNTS_DIR/$selected"
+        [ ! -d "$config_dir" ] && mkdir -p "$config_dir"
+        env_args+=("CLAUDE_CONFIG_DIR=$config_dir")
+        exec env "${env_args[@]}" claude --dangerously-skip-permissions "$@"
+    fi
+}
+
 # Main execution
 main() {
     # Check if accounts directory exists
@@ -1097,12 +1154,33 @@ main() {
     # Migrate settings if needed (old format to new format)
     migrate_settings_if_needed
 
-    # Clear screen before showing first menu
-    clear
-    # Set flag for first menu load to check for updates
-    FIRST_MENU_LOAD="true"
-    # Show menu (pass "true" for skip_permissions by default, then all args)
-    show_menu "true" "$@"
+    # Parse --profile / -p to bypass the interactive menu
+    local profile_arg=""
+    local passthrough_args=()
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --profile|-p)
+                shift
+                profile_arg="${1:-}"
+                [ -n "$profile_arg" ] && shift
+                ;;
+            *)
+                passthrough_args+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [ -n "$profile_arg" ]; then
+        launch_profile "$profile_arg" "${passthrough_args[@]}"
+    else
+        # Clear screen before showing first menu
+        clear
+        # Set flag for first menu load to check for updates
+        FIRST_MENU_LOAD="true"
+        # Show menu (pass "true" for skip_permissions by default, then all args)
+        show_menu "true" "${passthrough_args[@]}"
+    fi
 }
 
 # Run main function
